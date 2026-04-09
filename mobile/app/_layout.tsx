@@ -4,24 +4,16 @@ import { StatusBar } from 'expo-status-bar';
 export default function RootLayout() {
   return (
     <>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
       <Stack
         screenOptions={{
-          headerStyle: { backgroundColor: '#FFFFFF' },
-          headerTintColor: '#1A1A2E',
-          headerTitleStyle: { fontWeight: '700', fontSize: 18 },
-          headerShadowVisible: false,
-          contentStyle: { backgroundColor: '#F5F7FA' },
+          headerShown: false,
+          contentStyle: { backgroundColor: '#0F172A' },
+          animation: 'slide_from_right',
         }}
       >
-        <Stack.Screen
-          name="index"
-          options={{
-            title: 'Replyr',
-            headerLargeTitle: true,
-          }}
-        />
-        <Stack.Screen name="results" options={{ title: 'Your DMs' }} />
+        <Stack.Screen name="index" />
+        <Stack.Screen name="results" />
       </Stack>
     </>
   );
