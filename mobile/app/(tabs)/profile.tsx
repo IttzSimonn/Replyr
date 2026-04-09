@@ -11,7 +11,12 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from '../../contexts/ThemeContext';
 import { clearHistory } from '../../services/history';
+
+type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
 function Row({
   icon,
@@ -21,13 +26,14 @@ function Row({
   danger,
   right,
 }: {
-  icon: string;
+  icon: IoniconsName;
   label: string;
   value?: string;
   onPress?: () => void;
   danger?: boolean;
   right?: React.ReactNode;
 }) {
+  const { colors } = useTheme();
   return (
     <TouchableOpacity
       style={styles.row}
@@ -35,16 +41,24 @@ function Row({
       activeOpacity={onPress ? 0.7 : 1}
       disabled={!onPress && !right}
     >
-      <Text style={styles.rowIcon}>{icon}</Text>
-      <Text style={[styles.rowLabel, danger && styles.rowLabelDanger]}>{label}</Text>
-      {value ? <Text style={styles.rowValue}>{value}</Text> : null}
-      {right ?? (onPress ? <Text style={styles.rowArrow}>›</Text> : null)}
+      <Ionicons
+        name={icon}
+        size={20}
+        color={danger ? '#EF4444' : colors.textMuted}
+        style={{ width: 24 }}
+      />
+      <Text style={[styles.rowLabel, { color: danger ? '#EF4444' : colors.text }]}>{label}</Text>
+      {value ? <Text style={[styles.rowValue, { color: colors.textMuted }]}>{value}</Text> : null}
+      {right ?? (onPress ? (
+        <Ionicons name="chevron-forward" size={16} color={colors.border} />
+      ) : null)}
     </TouchableOpacity>
   );
 }
 
 export default function ProfileScreen() {
-  const [darkMode, setDarkMode] = useState(true);
+  const { colors, isDark, toggleTheme } = useTheme();
+  const insets = useSafeAreaInsets();
   const [notifications, setNotifications] = useState(false);
 
   const handleLogout = () => {
@@ -76,9 +90,9 @@ export default function ProfileScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Profile</Text>
+    <View style={[styles.container, { backgroundColor: colors.bg }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+        <Text style={[styles.title, { color: colors.text }]}>Profile</Text>
       </View>
 
       <ScrollView
@@ -87,7 +101,7 @@ export default function ProfileScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* User card */}
-        <View style={styles.userCard}>
+        <View style={[styles.userCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <LinearGradient
             colors={['#7B61FF', '#5B9CFF']}
             style={styles.avatar}
@@ -97,16 +111,16 @@ export default function ProfileScreen() {
             <Text style={styles.avatarText}>R</Text>
           </LinearGradient>
           <View>
-            <Text style={styles.userName}>Guest User</Text>
-            <Text style={styles.userEmail}>Not signed in</Text>
+            <Text style={[styles.userName, { color: colors.text }]}>Guest User</Text>
+            <Text style={[styles.userEmail, { color: colors.textMuted }]}>Not signed in</Text>
           </View>
         </View>
 
         {/* Plan */}
-        <View style={styles.planCard}>
+        <View style={[styles.planCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.planLeft}>
-            <Text style={styles.planLabel}>Current Plan</Text>
-            <Text style={styles.planName}>Free</Text>
+            <Text style={[styles.planLabel, { color: colors.textMuted }]}>Current Plan</Text>
+            <Text style={[styles.planName, { color: colors.text }]}>Free</Text>
           </View>
           <TouchableOpacity activeOpacity={0.85} style={styles.upgradeOuter}>
             <LinearGradient
@@ -122,12 +136,12 @@ export default function ProfileScreen() {
 
         {/* Pro features */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>PRO INCLUDES</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>PRO INCLUDES</Text>
           {['Unlimited generations', 'Priority AI model', 'Saved personas', 'Advanced analytics'].map(
             (f) => (
               <View key={f} style={styles.feature}>
-                <Text style={styles.featureCheck}>✓</Text>
-                <Text style={styles.featureText}>{f}</Text>
+                <Ionicons name="checkmark" size={14} color="#7B61FF" />
+                <Text style={[styles.featureText, { color: colors.textSec }]}>{f}</Text>
               </View>
             ),
           )}
@@ -135,29 +149,29 @@ export default function ProfileScreen() {
 
         {/* Settings */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>SETTINGS</Text>
-          <View style={styles.card}>
+          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>SETTINGS</Text>
+          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Row
-              icon="🌙"
+              icon="moon-outline"
               label="Dark Mode"
               right={
                 <Switch
-                  value={darkMode}
-                  onValueChange={setDarkMode}
-                  trackColor={{ false: '#334155', true: '#7B61FF' }}
+                  value={isDark}
+                  onValueChange={toggleTheme}
+                  trackColor={{ false: colors.border, true: '#7B61FF' }}
                   thumbColor="#FFFFFF"
                 />
               }
             />
-            <View style={styles.divider} />
+            <View style={[styles.divider, { backgroundColor: colors.bg, marginLeft: 52 }]} />
             <Row
-              icon="🔔"
+              icon="notifications-outline"
               label="Notifications"
               right={
                 <Switch
                   value={notifications}
                   onValueChange={setNotifications}
-                  trackColor={{ false: '#334155', true: '#7B61FF' }}
+                  trackColor={{ false: colors.border, true: '#7B61FF' }}
                   thumbColor="#FFFFFF"
                 />
               }
@@ -167,32 +181,39 @@ export default function ProfileScreen() {
 
         {/* Account */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>ACCOUNT</Text>
-          <View style={styles.card}>
-            <Row icon="🔒" label="Privacy Policy" onPress={() => {}} />
-            <View style={styles.divider} />
-            <Row icon="📄" label="Terms of Service" onPress={() => {}} />
-            <View style={styles.divider} />
-            <Row icon="🗑" label="Clear All Data" onPress={handleClearData} danger />
-            <View style={styles.divider} />
-            <Row icon="🚪" label="Sign Out" onPress={handleLogout} danger />
+          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>ACCOUNT</Text>
+          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Row
+              icon="lock-closed-outline"
+              label="Privacy Policy"
+              onPress={() => router.push('/privacy')}
+            />
+            <View style={[styles.divider, { backgroundColor: colors.bg, marginLeft: 52 }]} />
+            <Row
+              icon="document-text-outline"
+              label="Terms of Service"
+              onPress={() => router.push('/terms')}
+            />
+            <View style={[styles.divider, { backgroundColor: colors.bg, marginLeft: 52 }]} />
+            <Row icon="trash-outline" label="Clear All Data" onPress={handleClearData} danger />
+            <View style={[styles.divider, { backgroundColor: colors.bg, marginLeft: 52 }]} />
+            <Row icon="log-out-outline" label="Sign Out" onPress={handleLogout} danger />
           </View>
         </View>
 
-        <Text style={styles.version}>Replyr v1.0.0 · Your data is private</Text>
+        <Text style={[styles.version, { color: colors.border }]}>Replyr v1.0.0 · Your data is private</Text>
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0F172A' },
+  container: { flex: 1 },
   header: {
     paddingHorizontal: 24,
-    paddingTop: 60,
     paddingBottom: 16,
   },
-  title: { fontSize: 28, fontWeight: '800', color: '#FFFFFF', letterSpacing: -0.5 },
+  title: { fontSize: 28, fontWeight: '800', letterSpacing: -0.5 },
   scroll: { flex: 1 },
   content: {
     paddingHorizontal: 24,
@@ -206,11 +227,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    backgroundColor: '#1E293B',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#334155',
   },
   avatar: {
     width: 52,
@@ -220,19 +239,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarText: { fontSize: 24, fontWeight: '700', color: '#FFFFFF' },
-  userName: { fontSize: 17, fontWeight: '700', color: '#FFFFFF', marginBottom: 2 },
-  userEmail: { fontSize: 14, color: '#64748B' },
+  userName: { fontSize: 17, fontWeight: '700', marginBottom: 2 },
+  userEmail: { fontSize: 14 },
   planCard: {
-    backgroundColor: '#1E293B',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#334155',
     gap: 12,
   },
   planLeft: { marginBottom: 4 },
-  planLabel: { fontSize: 11, fontWeight: '700', color: '#475569', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 },
-  planName: { fontSize: 20, fontWeight: '800', color: '#FFFFFF' },
+  planLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 4,
+  },
+  planName: { fontSize: 20, fontWeight: '800' },
   upgradeOuter: { borderRadius: 12, overflow: 'hidden' },
   upgradeBtn: { paddingVertical: 14, alignItems: 'center', borderRadius: 12 },
   upgradeBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
@@ -240,21 +263,17 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#475569',
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 2,
   },
   card: {
-    backgroundColor: '#1E293B',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#334155',
     overflow: 'hidden',
   },
   feature: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 2 },
-  featureCheck: { color: '#7B61FF', fontSize: 14, fontWeight: '700' },
-  featureText: { fontSize: 14, color: '#94A3B8' },
+  featureText: { fontSize: 14 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -262,11 +281,8 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     gap: 12,
   },
-  rowIcon: { fontSize: 18, width: 24, textAlign: 'center' },
-  rowLabel: { flex: 1, fontSize: 15, color: '#F1F5F9', fontWeight: '500' },
-  rowLabelDanger: { color: '#EF4444' },
-  rowValue: { fontSize: 14, color: '#64748B' },
-  rowArrow: { color: '#334155', fontSize: 18 },
-  divider: { height: 1, backgroundColor: '#0F172A', marginLeft: 52 },
-  version: { fontSize: 12, color: '#334155', textAlign: 'center', marginTop: 8 },
+  rowLabel: { flex: 1, fontSize: 15, fontWeight: '500' },
+  rowValue: { fontSize: 14 },
+  divider: { height: 1 },
+  version: { fontSize: 12, textAlign: 'center', marginTop: 8 },
 });

@@ -11,7 +11,9 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
+import * as Haptics from 'expo-haptics';
 import { getLastDMs, getLastContext, setLastDMs, StoredDMs } from '../services/store';
 import { generateDMs } from '../services/anthropic';
 import { addToHistory } from '../services/history';
@@ -50,10 +52,10 @@ const LOADING_STEPS = [
 ];
 
 const REFINE_ACTIONS = [
-  { label: '✂️ Shorter', instruction: 'Make each DM shorter and more punchy — max 2 lines.' },
-  { label: '💪 More confident', instruction: 'Make each DM bolder and more confident in tone.' },
-  { label: '😊 More casual', instruction: 'Make each DM feel more casual and relaxed.' },
-  { label: '🎯 More persuasive', instruction: 'Make each DM more persuasive with a stronger hook.' },
+  { label: 'Shorter', instruction: 'Make each DM shorter and more punchy — max 2 lines.' },
+  { label: 'More confident', instruction: 'Make each DM bolder and more confident in tone.' },
+  { label: 'More casual', instruction: 'Make each DM feel more casual and relaxed.' },
+  { label: 'More persuasive', instruction: 'Make each DM more persuasive with a stronger hook.' },
 ];
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
@@ -75,15 +77,64 @@ function BounceDot({ delay }: { delay: number }) {
   return <Animated.View style={[styles.dot, { transform: [{ translateY: anim }] }]} />;
 }
 
+function TypingText({ text, style, delay = 0 }: { text: string; style?: any; delay?: number }) {
+  const [displayed, setDisplayed] = useState('');
+
+  useEffect(() => {
+    setDisplayed('');
+    let i = 0;
+    const start = setTimeout(() => {
+      const timer = setInterval(() => {
+        i++;
+        if (i > text.length) { clearInterval(timer); return; }
+        setDisplayed(text.slice(0, i));
+      }, 11);
+      return () => clearInterval(timer);
+    }, delay);
+    return () => clearTimeout(start);
+  }, [text]);
+
+  return <Text style={style}>{displayed || ' '}</Text>;
+}
+
+function CopyToast({ copyKey }: { copyKey: number }) {
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(10)).current;
+
+  useEffect(() => {
+    if (copyKey === 0) return;
+    opacity.setValue(0);
+    translateY.setValue(10);
+    Animated.parallel([
+      Animated.timing(opacity, { toValue: 1, duration: 180, useNativeDriver: true }),
+      Animated.timing(translateY, { toValue: 0, duration: 180, useNativeDriver: true }),
+    ]).start(() => {
+      setTimeout(() => {
+        Animated.timing(opacity, { toValue: 0, duration: 200, useNativeDriver: true }).start();
+      }, 1400);
+    });
+  }, [copyKey]);
+
+  return (
+    <Animated.View
+      style={[styles.toast, { opacity, transform: [{ translateY }] }]}
+      pointerEvents="none"
+    >
+      <Ionicons name="checkmark-circle" size={15} color="#4ade80" />
+      <Text style={styles.toastText}>Copied to clipboard</Text>
+    </Animated.View>
+  );
+}
+
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
 export default function ResultsScreen() {
   const [dms, setDms] = useState<StoredDMs | null>(null);
   const [activePage, setActivePage] = useState(0);
-  const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
+  const [copyKey, setCopyKey] = useState(0);
 
   const swipeRef = useRef<ScrollView>(null);
   const loadingOpacity = useRef(new Animated.Value(0)).current;
@@ -96,7 +147,6 @@ export default function ResultsScreen() {
     if (!stored) { router.replace('/(tabs)'); return; }
     setDms(stored);
 
-    // Save to history once
     if (!savedRef.current) {
       savedRef.current = true;
       const ctx = getLastContext();
@@ -136,8 +186,8 @@ export default function ResultsScreen() {
     if (!dms) return;
     const msg = [dms.dm1, dms.dm2, dms.dm3][activePage] ?? '';
     await Clipboard.setStringAsync(msg);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setCopyKey((k) => k + 1);
   };
 
   const handleSave = () => {
@@ -188,7 +238,8 @@ export default function ResultsScreen() {
       >
         {/* Header */}
         <TouchableOpacity onPress={() => router.back()} style={styles.back}>
-          <Text style={styles.backText}>← Back</Text>
+          <Ionicons name="arrow-back" size={20} color="#64748B" />
+          <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
 
         <View style={styles.headerRow}>
@@ -223,9 +274,13 @@ export default function ResultsScreen() {
                 <View style={styles.dmInner}>
                   <Text style={styles.dmLabel}>DM {i + 1} — {meta.label}</Text>
 
-                  {/* Chat bubble */}
+                  {/* Chat bubble with typing animation */}
                   <View style={styles.bubble}>
-                    <Text style={styles.bubbleText}>{messages[i] || '—'}</Text>
+                    <TypingText
+                      text={messages[i] || ''}
+                      style={styles.bubbleText}
+                      delay={i * 100}
+                    />
                   </View>
 
                   {/* Reply rate */}
@@ -276,22 +331,22 @@ export default function ResultsScreen() {
 
         {/* Action buttons */}
         <View style={styles.actions}>
-          <TouchableOpacity
-            style={[styles.actionBtn, copied && styles.actionBtnDone]}
-            onPress={handleCopy}
-            activeOpacity={0.75}
-          >
-            <Text style={[styles.actionBtnText, copied && styles.actionBtnTextDone]}>
-              {copied ? '✓ Copied!' : '📋 Copy'}
-            </Text>
+          <TouchableOpacity style={styles.actionBtn} onPress={handleCopy} activeOpacity={0.75}>
+            <Ionicons name="copy-outline" size={15} color="#94A3B8" />
+            <Text style={styles.actionBtnText}>Copy</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.actionBtn, saved && styles.actionBtnSaved]}
             onPress={handleSave}
             activeOpacity={0.75}
           >
+            <Ionicons
+              name={saved ? 'bookmark' : 'bookmark-outline'}
+              size={15}
+              color={saved ? '#818cf8' : '#94A3B8'}
+            />
             <Text style={[styles.actionBtnText, saved && styles.actionBtnTextSaved]}>
-              {saved ? '✓ Saved' : '🔖 Save'}
+              {saved ? 'Saved' : 'Save'}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -300,7 +355,8 @@ export default function ResultsScreen() {
             activeOpacity={0.75}
             disabled={regenerating}
           >
-            <Text style={styles.actionBtnText}>↻ New</Text>
+            <Ionicons name="refresh-outline" size={15} color="#94A3B8" />
+            <Text style={styles.actionBtnText}>New</Text>
           </TouchableOpacity>
         </View>
 
@@ -325,7 +381,7 @@ export default function ResultsScreen() {
         {/* Tip */}
         <View style={styles.tip}>
           <Text style={styles.tipText}>
-            💡 Tip: shorter messages consistently get higher reply rates
+            Tip: shorter messages consistently get higher reply rates
           </Text>
         </View>
 
@@ -342,14 +398,19 @@ export default function ResultsScreen() {
             end={{ x: 1, y: 0 }}
             style={styles.regenBtn}
           >
-            <Text style={styles.regenText}>↻  Regenerate All</Text>
+            <Text style={styles.regenText}>Regenerate All</Text>
           </LinearGradient>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.newBtn} onPress={() => router.back()} activeOpacity={0.7}>
-          <Text style={styles.newBtnText}>← Generate New DMs</Text>
+          <Text style={styles.newBtnText}>Generate New DMs</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Copy toast */}
+      <View style={styles.toastWrap} pointerEvents="none">
+        <CopyToast copyKey={copyKey} />
+      </View>
 
       {/* Loading overlay */}
       <Animated.View
@@ -384,7 +445,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     width: '100%',
   },
-  back: { marginBottom: 20 },
+  back: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 20 },
   backText: { color: '#64748B', fontSize: 15, fontWeight: '500' },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 4 },
   title: { fontSize: 30, fontWeight: '800', color: '#FFFFFF', letterSpacing: -0.5 },
@@ -427,6 +488,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     borderWidth: 1,
     borderColor: '#1E293B',
+    minHeight: 80,
   },
   bubbleText: { fontSize: 16, color: '#F1F5F9', lineHeight: 26 },
   insightRow: { marginBottom: 12 },
@@ -464,17 +526,18 @@ const styles = StyleSheet.create({
   },
   actionBtn: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
     backgroundColor: '#1E293B',
     borderRadius: 12,
     paddingVertical: 12,
-    alignItems: 'center',
     borderWidth: 1,
     borderColor: '#334155',
   },
-  actionBtnDone: { backgroundColor: '#052e16', borderColor: '#166534' },
   actionBtnSaved: { backgroundColor: '#1e1b4b', borderColor: '#3730a3' },
   actionBtnText: { fontSize: 13, fontWeight: '600', color: '#94A3B8' },
-  actionBtnTextDone: { color: '#4ade80' },
   actionBtnTextSaved: { color: '#818cf8' },
 
   // Refinement
@@ -523,6 +586,27 @@ const styles = StyleSheet.create({
   regenText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', letterSpacing: 0.2 },
   newBtn: { alignItems: 'center', paddingVertical: 14 },
   newBtnText: { fontSize: 14, color: '#475569', fontWeight: '500' },
+
+  // Toast
+  toastWrap: {
+    position: 'absolute',
+    bottom: 100,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  toast: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#1E293B',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  toastText: { fontSize: 14, color: '#F1F5F9', fontWeight: '600' },
 
   // Loading
   overlay: {

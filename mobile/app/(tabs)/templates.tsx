@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { setPendingTemplate } from '../../services/store';
 import { DMContext } from '../../services/anthropic';
 
@@ -88,6 +89,8 @@ const TEMPLATES: Template[] = [
 ];
 
 export default function TemplatesScreen() {
+  const insets = useSafeAreaInsets();
+
   const handleSelect = (template: Template) => {
     setPendingTemplate(template.data);
     router.navigate('/(tabs)/');
@@ -95,7 +98,7 @@ export default function TemplatesScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <Text style={styles.title}>Templates</Text>
         <Text style={styles.subtitle}>Tap any template to auto-fill the generator</Text>
       </View>
@@ -155,7 +158,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0F172A' },
   header: {
     paddingHorizontal: 24,
-    paddingTop: 60,
     paddingBottom: 16,
   },
   title: { fontSize: 28, fontWeight: '800', color: '#FFFFFF', letterSpacing: -0.5, marginBottom: 4 },

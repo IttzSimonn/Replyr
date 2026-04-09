@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as SecureStore from 'expo-secure-store';
 
 const { width, height } = Dimensions.get('window');
@@ -36,6 +37,7 @@ const SLIDES = [
 ];
 
 export default function OnboardingScreen() {
+  const insets = useSafeAreaInsets();
   const [page, setPage] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
   const dotAnims = useRef(SLIDES.map((_, i) => new Animated.Value(i === 0 ? 1 : 0))).current;
@@ -71,7 +73,7 @@ export default function OnboardingScreen() {
   return (
     <View style={styles.container}>
       {/* Skip */}
-      <TouchableOpacity style={styles.skip} onPress={handleSkip}>
+      <TouchableOpacity style={[styles.skip, { top: insets.top + 12 }]} onPress={handleSkip}>
         <Text style={styles.skipText}>Skip</Text>
       </TouchableOpacity>
 
@@ -167,7 +169,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0F172A' },
   skip: {
     position: 'absolute',
-    top: 56,
     right: 24,
     zIndex: 10,
     paddingHorizontal: 12,

@@ -14,6 +14,9 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as SecureStore from 'expo-secure-store';
+import * as Haptics from 'expo-haptics';
 import { generateDMs, DMContext } from '../../services/anthropic';
 import { setLastDMs, setLastContext, consumePendingTemplate } from '../../services/store';
 
@@ -194,7 +197,10 @@ function BounceDot({ delay }: { delay: number }) {
 
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
+const FORM_KEY = 'saved_form';
+
 export default function HomeScreen() {
+  const insets = useSafeAreaInsets();
   const [intent, setIntent] = useState('');
   const [target, setTarget] = useState('');
   const [goal, setGoal] = useState('');
@@ -211,6 +217,42 @@ export default function HomeScreen() {
   const loadingOpacity = useRef(new Animated.Value(0)).current;
   const stepOpacity = useRef(new Animated.Value(1)).current;
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Restore saved form on mount
+  useEffect(() => {
+    SecureStore.getItemAsync(FORM_KEY).then((raw) => {
+      if (!raw) return;
+      try {
+        const saved = JSON.parse(raw);
+        if (saved.intent) setIntent(saved.intent);
+        if (saved.target) setTarget(saved.target);
+        if (saved.goal) setGoal(saved.goal);
+        if (saved.tone) setTone(saved.tone);
+        if (saved.platform) setPlatform(saved.platform);
+        if (saved.senderInfo) setSenderInfo(saved.senderInfo);
+        if (saved.targetContext) setTargetContext(saved.targetContext);
+      } catch {}
+    });
+  }, []);
+
+  // Debounced auto-save
+  const scheduleFormSave = (patch: object) => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(async () => {
+      const raw = await SecureStore.getItemAsync(FORM_KEY);
+      const current = raw ? JSON.parse(raw) : {};
+      await SecureStore.setItemAsync(FORM_KEY, JSON.stringify({ ...current, ...patch }));
+    }, 500);
+  };
+
+  const setAndSaveIntent = (v: string) => { setIntent(v); scheduleFormSave({ intent: v }); };
+  const setAndSaveTarget = (v: string) => { setTarget(v); scheduleFormSave({ target: v }); };
+  const setAndSaveGoal = (v: string) => { setGoal(v); scheduleFormSave({ goal: v }); };
+  const setAndSaveTone = (v: string) => { setTone(v); scheduleFormSave({ tone: v }); };
+  const setAndSavePlatform = (v: string) => { setPlatform(v); scheduleFormSave({ platform: v }); };
+  const setAndSaveSenderInfo = (v: string) => { setSenderInfo(v); scheduleFormSave({ senderInfo: v }); };
+  const setAndSaveTargetContext = (v: string) => { setTargetContext(v); scheduleFormSave({ targetContext: v }); };
 
   useEffect(() => {
     Animated.parallel([
@@ -262,6 +304,7 @@ export default function HomeScreen() {
     if (!senderInfo.trim()) { Alert.alert('Required', 'Add a bit about yourself.'); return; }
 
     const context: DMContext = { intent, target, goal, tone, platform, senderInfo, targetContext };
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
 
     setLoading(true);
     startCycling();
@@ -290,7 +333,7 @@ export default function HomeScreen() {
       >
         <ScrollView
           style={styles.scroll}
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -305,31 +348,31 @@ export default function HomeScreen() {
           {/* Intent */}
           <View style={styles.section}>
             <SectionLabel label="Intent" />
-            <ChipRow options={INTENTS} selected={intent} onSelect={setIntent} />
+            <ChipRow options={INTENTS} selected={intent} onSelect={setAndSaveIntent} />
           </View>
 
           <View style={styles.gap}>
-            <InputCard icon="👤" label="Target Person" placeholder="Who are you messaging?" value={target} onChangeText={setTarget} />
+            <InputCard icon="👤" label="Target Person" placeholder="Who are you messaging?" value={target} onChangeText={setAndSaveTarget} />
           </View>
           <View style={styles.gap}>
-            <InputCard icon="🎯" label="Goal" placeholder="What do you want to happen?" value={goal} onChangeText={setGoal} />
+            <InputCard icon="🎯" label="Goal" placeholder="What do you want to happen?" value={goal} onChangeText={setAndSaveGoal} />
           </View>
 
           <View style={styles.section}>
             <SectionLabel label="Tone" />
-            <ChipRow options={TONES} selected={tone} onSelect={setTone} />
+            <ChipRow options={TONES} selected={tone} onSelect={setAndSaveTone} />
           </View>
 
           <View style={styles.section}>
             <SectionLabel label="Platform" />
-            <ChipRow options={PLATFORMS} selected={platform} onSelect={setPlatform} />
+            <ChipRow options={PLATFORMS} selected={platform} onSelect={setAndSavePlatform} />
           </View>
 
           <View style={styles.gap}>
-            <InputCard icon="💼" label="About You" placeholder="Brief info about you or your offer" value={senderInfo} onChangeText={setSenderInfo} />
+            <InputCard icon="💼" label="About You" placeholder="Brief info about you or your offer" value={senderInfo} onChangeText={setAndSaveSenderInfo} />
           </View>
           <View style={styles.gap}>
-            <InputCard icon="💡" label="Target Context" optional placeholder="Their posts, business, vibe..." value={targetContext} onChangeText={setTargetContext} multiline />
+            <InputCard icon="💡" label="Target Context" optional placeholder="Their posts, business, vibe..." value={targetContext} onChangeText={setAndSaveTargetContext} multiline />
           </View>
 
           {/* Spacer for sticky button */}

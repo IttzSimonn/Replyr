@@ -1,16 +1,11 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Platform } from 'react-native';
+import { useTheme } from '../../contexts/ThemeContext';
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
-function TabIcon({
-  name,
-  focused,
-}: {
-  name: IoniconsName;
-  focused: boolean;
-}) {
+function TabIcon({ name, focused }: { name: IoniconsName; focused: boolean }) {
   return (
     <Ionicons
       name={focused ? name : (`${name}-outline` as IoniconsName)}
@@ -21,13 +16,14 @@ function TabIcon({
 }
 
 export default function TabLayout() {
+  const { colors } = useTheme();
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#111827',
-          borderTopColor: '#1E293B',
+          backgroundColor: colors.surfaceHigh,
+          borderTopColor: colors.border,
           borderTopWidth: 1,
           height: Platform.OS === 'ios' ? 84 : 64,
           paddingBottom: Platform.OS === 'ios' ? 28 : 10,

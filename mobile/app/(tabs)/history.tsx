@@ -8,6 +8,7 @@ import {
   Alert,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Clipboard from 'expo-clipboard';
 import { getHistory, removeFromHistory, clearHistory, HistoryItem } from '../../services/history';
 
@@ -30,6 +31,7 @@ const PLATFORM_COLOR: Record<string, string> = {
 };
 
 export default function HistoryScreen() {
+  const insets = useSafeAreaInsets();
   const [items, setItems] = useState<HistoryItem[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
@@ -77,7 +79,7 @@ export default function HistoryScreen() {
   if (items.length === 0) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
           <Text style={styles.title}>History</Text>
         </View>
         <View style={styles.empty}>
@@ -93,7 +95,7 @@ export default function HistoryScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <Text style={styles.title}>History</Text>
         <TouchableOpacity onPress={handleClear} activeOpacity={0.7}>
           <Text style={styles.clearBtn}>Clear all</Text>
@@ -173,7 +175,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 24,
-    paddingTop: 60,
     paddingBottom: 16,
   },
   title: { fontSize: 28, fontWeight: '800', color: '#FFFFFF', letterSpacing: -0.5 },
