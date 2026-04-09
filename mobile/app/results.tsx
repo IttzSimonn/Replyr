@@ -7,12 +7,16 @@ import {
   StyleSheet,
   Animated,
   Alert,
+  Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { getLastDMs, getLastContext, setLastDMs, StoredDMs } from '../services/store';
 import { generateDMs } from '../services/anthropic';
+import { addToHistory } from '../services/history';
+
+const { width } = Dimensions.get('window');
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -21,16 +25,19 @@ const DM_META = [
     label: 'Curiosity Hook',
     gradient: ['#7B61FF', '#9B81FF'] as const,
     why: 'Opens a loop they feel compelled to close',
+    replyRate: 82,
   },
   {
     label: 'Direct Value',
     gradient: ['#059669', '#10B981'] as const,
     why: "Clearly shows what's in it for them",
+    replyRate: 74,
   },
   {
     label: 'Casual Touch',
     gradient: ['#D97706', '#F59E0B'] as const,
     why: 'Low resistance — feels like a friend reaching out',
+    replyRate: 89,
   },
 ];
 
@@ -42,11 +49,17 @@ const LOADING_STEPS = [
   'Polishing messages...',
 ];
 
+const REFINE_ACTIONS = [
+  { label: '✂️ Shorter', instruction: 'Make each DM shorter and more punchy — max 2 lines.' },
+  { label: '💪 More confident', instruction: 'Make each DM bolder and more confident in tone.' },
+  { label: '😊 More casual', instruction: 'Make each DM feel more casual and relaxed.' },
+  { label: '🎯 More persuasive', instruction: 'Make each DM more persuasive with a stronger hook.' },
+];
+
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
 function BounceDot({ delay }: { delay: number }) {
   const anim = useRef(new Animated.Value(0)).current;
-
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
@@ -59,7 +72,6 @@ function BounceDot({ delay }: { delay: number }) {
     loop.start();
     return () => loop.stop();
   }, []);
-
   return <Animated.View style={[styles.dot, { transform: [{ translateY: anim }] }]} />;
 }
 
@@ -67,46 +79,42 @@ function BounceDot({ delay }: { delay: number }) {
 
 export default function ResultsScreen() {
   const [dms, setDms] = useState<StoredDMs | null>(null);
-  const [copied, setCopied] = useState<number | null>(null);
+  const [activePage, setActivePage] = useState(0);
+  const [copied, setCopied] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
 
-  const cardAnims = useRef(
-    [0, 1, 2].map(() => ({
-      opacity: new Animated.Value(0),
-      translateY: new Animated.Value(30),
-    })),
-  ).current;
-
+  const swipeRef = useRef<ScrollView>(null);
   const loadingOpacity = useRef(new Animated.Value(0)).current;
   const stepOpacity = useRef(new Animated.Value(1)).current;
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const savedRef = useRef(false);
 
   useEffect(() => {
     const stored = getLastDMs();
-    if (!stored) { router.replace('/'); return; }
+    if (!stored) { router.replace('/(tabs)'); return; }
     setDms(stored);
-    animateIn();
+
+    // Save to history once
+    if (!savedRef.current) {
+      savedRef.current = true;
+      const ctx = getLastContext();
+      addToHistory({
+        platform: stored.platform,
+        intent: ctx?.intent ?? '',
+        target: ctx?.target ?? '',
+        dm1: stored.dm1,
+        dm2: stored.dm2,
+        dm3: stored.dm3,
+      });
+    }
   }, []);
 
   useEffect(() => {
     stepOpacity.setValue(0);
     Animated.timing(stepOpacity, { toValue: 1, duration: 300, useNativeDriver: true }).start();
   }, [stepIndex]);
-
-  const animateIn = () => {
-    cardAnims.forEach((a) => { a.opacity.setValue(0); a.translateY.setValue(30); });
-    cardAnims.forEach((anim, i) => {
-      Animated.parallel([
-        Animated.timing(anim.opacity, {
-          toValue: 1, duration: 480, delay: i * 130, useNativeDriver: true,
-        }),
-        Animated.timing(anim.translateY, {
-          toValue: 0, duration: 480, delay: i * 130, useNativeDriver: true,
-        }),
-      ]).start();
-    });
-  };
 
   const startCycling = () => {
     let idx = 0;
@@ -124,26 +132,38 @@ export default function ResultsScreen() {
     }
   };
 
-  const handleCopy = async (text: string, index: number) => {
-    await Clipboard.setStringAsync(text);
-    setCopied(index);
-    setTimeout(() => setCopied(null), 2000);
+  const handleCopy = async () => {
+    if (!dms) return;
+    const msg = [dms.dm1, dms.dm2, dms.dm3][activePage] ?? '';
+    await Clipboard.setStringAsync(msg);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleRegenerate = async () => {
+  const handleSave = () => {
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  const runRegenerate = async (extraInstruction?: string) => {
     const ctx = getLastContext();
-    if (!ctx) { router.replace('/'); return; }
+    if (!ctx) { router.replace('/(tabs)'); return; }
+
+    const contextWithNote = extraInstruction
+      ? { ...ctx, targetContext: `${ctx.targetContext ?? ''}\n\nStyle note: ${extraInstruction}`.trim() }
+      : ctx;
 
     setRegenerating(true);
     startCycling();
     Animated.timing(loadingOpacity, { toValue: 1, duration: 250, useNativeDriver: true }).start();
 
     try {
-      const newDms = await generateDMs(ctx);
+      const newDms = await generateDMs(contextWithNote);
       const stored: StoredDMs = { ...newDms, platform: dms?.platform ?? ctx.platform };
       setLastDMs(stored);
       setDms(stored);
-      animateIn();
+      setActivePage(0);
+      swipeRef.current?.scrollTo({ x: 0, animated: false });
     } catch (err: any) {
       Alert.alert('Error', err.message ?? 'Failed to regenerate. Try again.');
     } finally {
@@ -157,6 +177,7 @@ export default function ResultsScreen() {
   if (!dms) return null;
 
   const messages = [dms.dm1, dms.dm2, dms.dm3];
+  const currentMeta = DM_META[activePage];
 
   return (
     <View style={styles.container}>
@@ -165,6 +186,7 @@ export default function ResultsScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
+        {/* Header */}
         <TouchableOpacity onPress={() => router.back()} style={styles.back}>
           <Text style={styles.backText}>← Back</Text>
         </TouchableOpacity>
@@ -175,47 +197,141 @@ export default function ResultsScreen() {
             <Text style={styles.badgeText}>{dms.platform}</Text>
           </View>
         </View>
-        <Text style={styles.subtitle}>3 high-converting messages, ready to send</Text>
+        <Text style={styles.subtitle}>Swipe to switch between variations</Text>
 
-        {DM_META.map((meta, i) => (
-          <Animated.View
-            key={i}
-            style={[
-              styles.card,
-              {
-                opacity: cardAnims[i].opacity,
-                transform: [{ translateY: cardAnims[i].translateY }],
-              },
-            ]}
+        {/* Swipeable DM cards */}
+        <View style={styles.swipeContainer}>
+          <ScrollView
+            ref={swipeRef}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            scrollEventThrottle={16}
+            onScroll={(e) => {
+              const p = Math.round(e.nativeEvent.contentOffset.x / (width - 48));
+              if (p !== activePage) setActivePage(Math.min(2, Math.max(0, p)));
+            }}
           >
-            <LinearGradient
-              colors={meta.gradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.stripe}
-            />
-            <View style={styles.cardInner}>
-              <Text style={styles.cardLabel}>DM {i + 1} — {meta.label}</Text>
-              <Text style={styles.message}>{messages[i] || '—'}</Text>
-              <Text style={styles.why}>
-                <Text style={styles.whyBold}>Why it works: </Text>
-                {meta.why}
-              </Text>
-              <TouchableOpacity
-                style={[styles.copyBtn, copied === i && styles.copyBtnDone]}
-                onPress={() => handleCopy(messages[i] ?? '', i)}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.copyText, copied === i && styles.copyTextDone]}>
-                  {copied === i ? '✓ Copied!' : '📋 Copy'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </Animated.View>
-        ))}
+            {DM_META.map((meta, i) => (
+              <View key={i} style={[styles.dmCard, { width: width - 48 }]}>
+                <LinearGradient
+                  colors={meta.gradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.dmStripe}
+                />
+                <View style={styles.dmInner}>
+                  <Text style={styles.dmLabel}>DM {i + 1} — {meta.label}</Text>
 
+                  {/* Chat bubble */}
+                  <View style={styles.bubble}>
+                    <Text style={styles.bubbleText}>{messages[i] || '—'}</Text>
+                  </View>
+
+                  {/* Reply rate */}
+                  <View style={styles.insightRow}>
+                    <LinearGradient
+                      colors={meta.gradient}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.insightPill}
+                    >
+                      <Text style={styles.insightText}>
+                        ↑ ~{meta.replyRate}% estimated reply rate
+                      </Text>
+                    </LinearGradient>
+                  </View>
+
+                  {/* Why it works */}
+                  <Text style={styles.why}>
+                    <Text style={styles.whyBold}>Why it works: </Text>
+                    {meta.why}
+                  </Text>
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+
+          {/* Dot indicators */}
+          <View style={styles.pageDots}>
+            {DM_META.map((_, i) => (
+              <TouchableOpacity
+                key={i}
+                onPress={() => {
+                  setActivePage(i);
+                  swipeRef.current?.scrollTo({ x: i * (width - 48), animated: true });
+                }}
+              >
+                <View
+                  style={[
+                    styles.pageDot,
+                    activePage === i && styles.pageDotActive,
+                    activePage === i && { backgroundColor: currentMeta.gradient[0] },
+                  ]}
+                />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Action buttons */}
+        <View style={styles.actions}>
+          <TouchableOpacity
+            style={[styles.actionBtn, copied && styles.actionBtnDone]}
+            onPress={handleCopy}
+            activeOpacity={0.75}
+          >
+            <Text style={[styles.actionBtnText, copied && styles.actionBtnTextDone]}>
+              {copied ? '✓ Copied!' : '📋 Copy'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionBtn, saved && styles.actionBtnSaved]}
+            onPress={handleSave}
+            activeOpacity={0.75}
+          >
+            <Text style={[styles.actionBtnText, saved && styles.actionBtnTextSaved]}>
+              {saved ? '✓ Saved' : '🔖 Save'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionBtn}
+            onPress={() => runRegenerate()}
+            activeOpacity={0.75}
+            disabled={regenerating}
+          >
+            <Text style={styles.actionBtnText}>↻ New</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* AI refinement */}
+        <View style={styles.refineSection}>
+          <Text style={styles.refineTitle}>REFINE ALL DMS</Text>
+          <View style={styles.refineChips}>
+            {REFINE_ACTIONS.map((action) => (
+              <TouchableOpacity
+                key={action.label}
+                style={styles.refineChip}
+                onPress={() => runRegenerate(action.instruction)}
+                disabled={regenerating}
+                activeOpacity={0.75}
+              >
+                <Text style={styles.refineChipText}>{action.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Tip */}
+        <View style={styles.tip}>
+          <Text style={styles.tipText}>
+            💡 Tip: shorter messages consistently get higher reply rates
+          </Text>
+        </View>
+
+        {/* Regenerate all */}
         <TouchableOpacity
-          onPress={handleRegenerate}
+          onPress={() => runRegenerate()}
           disabled={regenerating}
           activeOpacity={0.85}
           style={[styles.regenOuter, regenerating && { opacity: 0.5 }]}
@@ -235,6 +351,7 @@ export default function ResultsScreen() {
         </TouchableOpacity>
       </ScrollView>
 
+      {/* Loading overlay */}
       <Animated.View
         style={[styles.overlay, { opacity: loadingOpacity }]}
         pointerEvents={regenerating ? 'auto' : 'none'}
@@ -269,7 +386,7 @@ const styles = StyleSheet.create({
   },
   back: { marginBottom: 20 },
   backText: { color: '#64748B', fontSize: 15, fontWeight: '500' },
-  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 6 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 4 },
   title: { fontSize: 30, fontWeight: '800', color: '#FFFFFF', letterSpacing: -0.5 },
   badge: {
     backgroundColor: '#1E293B',
@@ -280,42 +397,119 @@ const styles = StyleSheet.create({
     borderColor: '#334155',
   },
   badgeText: { fontSize: 12, color: '#94A3B8', fontWeight: '600' },
-  subtitle: { fontSize: 14, color: '#475569', marginBottom: 28 },
-  card: {
+  subtitle: { fontSize: 13, color: '#475569', marginBottom: 20 },
+
+  // Swipe
+  swipeContainer: { marginHorizontal: -24, marginBottom: 16 },
+  dmCard: {
     backgroundColor: '#1E293B',
     borderRadius: 20,
-    marginBottom: 16,
+    marginHorizontal: 24,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#334155',
   },
-  stripe: { height: 3 },
-  cardInner: { padding: 20 },
-  cardLabel: {
-    fontSize: 11,
+  dmStripe: { height: 3 },
+  dmInner: { padding: 20 },
+  dmLabel: {
+    fontSize: 10,
     fontWeight: '700',
     color: '#64748B',
     textTransform: 'uppercase',
     letterSpacing: 1,
-    marginBottom: 12,
+    marginBottom: 14,
   },
-  message: { fontSize: 16, color: '#F1F5F9', lineHeight: 26, marginBottom: 14 },
-  why: { fontSize: 12, color: '#475569', marginBottom: 16, lineHeight: 18 },
-  whyBold: { color: '#64748B', fontWeight: '600' },
-  copyBtn: {
-    alignSelf: 'flex-end',
+  bubble: {
     backgroundColor: '#0F172A',
+    borderRadius: 18,
+    borderBottomLeftRadius: 4,
+    padding: 16,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#1E293B',
+  },
+  bubbleText: { fontSize: 16, color: '#F1F5F9', lineHeight: 26 },
+  insightRow: { marginBottom: 12 },
+  insightPill: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: 8,
+  },
+  insightText: { fontSize: 12, color: '#FFFFFF', fontWeight: '600' },
+  why: { fontSize: 12, color: '#475569', lineHeight: 18 },
+  whyBold: { color: '#64748B', fontWeight: '600' },
+
+  // Dots
+  pageDots: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 14,
+    paddingHorizontal: 24,
+  },
+  pageDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#334155',
+  },
+  pageDotActive: { width: 24 },
+
+  // Actions
+  actions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 20,
+  },
+  actionBtn: {
+    flex: 1,
+    backgroundColor: '#1E293B',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  actionBtnDone: { backgroundColor: '#052e16', borderColor: '#166534' },
+  actionBtnSaved: { backgroundColor: '#1e1b4b', borderColor: '#3730a3' },
+  actionBtnText: { fontSize: 13, fontWeight: '600', color: '#94A3B8' },
+  actionBtnTextDone: { color: '#4ade80' },
+  actionBtnTextSaved: { color: '#818cf8' },
+
+  // Refinement
+  refineSection: { marginBottom: 16 },
+  refineTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#475569',
+    letterSpacing: 1,
+    marginBottom: 10,
+  },
+  refineChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  refineChip: {
+    backgroundColor: '#1E293B',
+    borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderWidth: 1,
     borderColor: '#334155',
   },
-  copyBtnDone: { backgroundColor: '#052e16', borderColor: '#166534' },
-  copyText: { fontSize: 13, fontWeight: '600', color: '#94A3B8' },
-  copyTextDone: { color: '#4ade80' },
+  refineChipText: { fontSize: 13, color: '#94A3B8', fontWeight: '500' },
+
+  // Tip
+  tip: {
+    backgroundColor: '#1E293B',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  tipText: { fontSize: 13, color: '#64748B', lineHeight: 20 },
+
+  // Regen
   regenOuter: {
-    marginTop: 12,
     marginBottom: 12,
     borderRadius: 16,
     overflow: 'hidden',
@@ -329,6 +523,8 @@ const styles = StyleSheet.create({
   regenText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', letterSpacing: 0.2 },
   newBtn: { alignItems: 'center', paddingVertical: 14 },
   newBtnText: { fontSize: 14, color: '#475569', fontWeight: '500' },
+
+  // Loading
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(15, 23, 42, 0.93)',

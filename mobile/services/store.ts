@@ -9,8 +9,17 @@ export interface StoredDMs {
 
 let _last: StoredDMs | null = null;
 let _context: DMContext | null = null;
+let _pendingTemplate: Partial<DMContext> | null = null;
 
 export function setLastDMs(dms: StoredDMs): void { _last = dms; }
 export function getLastDMs(): StoredDMs | null { return _last; }
+
 export function setLastContext(ctx: DMContext): void { _context = ctx; }
 export function getLastContext(): DMContext | null { return _context; }
+
+export function setPendingTemplate(t: Partial<DMContext>): void { _pendingTemplate = t; }
+export function consumePendingTemplate(): Partial<DMContext> | null {
+  const t = _pendingTemplate;
+  _pendingTemplate = null;
+  return t;
+}
