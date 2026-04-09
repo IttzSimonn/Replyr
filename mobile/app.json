@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "Replyr",
+    "slug": "replyr",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "replyr",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.replyr.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#6C63FF"
+      },
+      "package": "com.replyr.app"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
