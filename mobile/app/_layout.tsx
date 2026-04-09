@@ -22,7 +22,6 @@ export default function RootLayout() {
           }}
         />
         <Stack.Screen name="results" options={{ title: 'Your DMs' }} />
-        <Stack.Screen name="settings" options={{ title: 'Settings' }} />
       </Stack>
     </>
   );

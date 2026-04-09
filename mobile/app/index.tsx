@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -12,8 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { router } from 'expo-router';
-import { useFocusEffect } from '@react-navigation/native';
-import { generateDMs, getApiKey, DMContext } from '../services/anthropic';
+import { generateDMs, DMContext } from '../services/anthropic';
 import { setLastDMs } from '../services/store';
 
 const FIELDS: Array<{
@@ -51,13 +50,6 @@ const EMPTY_FORM: DMContext = {
 export default function HomeScreen() {
   const [form, setForm] = useState<DMContext>(EMPTY_FORM);
   const [loading, setLoading] = useState(false);
-  const [hasKey, setHasKey] = useState<boolean | null>(null);
-
-  useFocusEffect(
-    useCallback(() => {
-      getApiKey().then((k) => setHasKey(!!k));
-    }, []),
-  );
 
   const handleGenerate = async () => {
     const required: Array<keyof DMContext> = [
@@ -71,29 +63,13 @@ export default function HomeScreen() {
       }
     }
 
-    if (!hasKey) {
-      Alert.alert(
-        'API Key Required',
-        'Add your Anthropic API key in Settings to get started.',
-        [
-          { text: 'Open Settings', onPress: () => router.push('/settings') },
-          { text: 'Cancel', style: 'cancel' },
-        ],
-      );
-      return;
-    }
-
     setLoading(true);
     try {
       const dms = await generateDMs(form);
       setLastDMs({ ...dms, platform: form.platform });
       router.push('/results');
     } catch (err: any) {
-      if (err.message === 'NO_API_KEY') {
-        router.push('/settings');
-      } else {
-        Alert.alert('Error', err.message ?? 'Failed to generate DMs. Please try again.');
-      }
+      Alert.alert('Error', err.message ?? 'Failed to generate DMs. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -112,17 +88,6 @@ export default function HomeScreen() {
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
       >
-        {hasKey === false && (
-          <TouchableOpacity
-            style={styles.banner}
-            onPress={() => router.push('/settings')}
-          >
-            <Text style={styles.bannerText}>
-              ⚙️ Set your Anthropic API key to get started →
-            </Text>
-          </TouchableOpacity>
-        )}
-
         <Text style={styles.subtitle}>
           Fill in the context below to generate 3 high-converting DMs.
         </Text>
@@ -160,13 +125,6 @@ export default function HomeScreen() {
             <Text style={styles.buttonText}>Generate DMs ✨</Text>
           )}
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.settingsBtn}
-          onPress={() => router.push('/settings')}
-        >
-          <Text style={styles.settingsBtnText}>⚙️ API Key Settings</Text>
-        </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -181,20 +139,6 @@ const styles = StyleSheet.create({
     maxWidth: 640,
     alignSelf: 'center',
     width: '100%',
-  },
-  banner: {
-    backgroundColor: '#EEF2FF',
-    borderRadius: 10,
-    padding: 14,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#C7D2FE',
-  },
-  bannerText: {
-    color: '#4F46E5',
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
   },
   subtitle: {
     fontSize: 15,
@@ -250,14 +194,5 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '700',
     letterSpacing: 0.2,
-  },
-  settingsBtn: {
-    alignItems: 'center',
-    marginTop: 20,
-    paddingVertical: 8,
-  },
-  settingsBtnText: {
-    fontSize: 14,
-    color: '#9CA3AF',
   },
 });
