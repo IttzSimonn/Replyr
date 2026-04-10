@@ -1,6 +1,45 @@
 import 'react-native-url-polyfill/auto';
 import { createClient } from '@supabase/supabase-js';
 import * as SecureStore from 'expo-secure-store';
+import {
+  getRandomValues,
+  digestStringAsync,
+  CryptoDigestAlgorithm,
+  CryptoEncoding,
+} from 'expo-crypto';
+
+// ─── WebCrypto polyfill ───────────────────────────────────────────────────────
+// React Native (incl. Expo Go) doesn't expose global.crypto.subtle, which
+// Supabase needs for PKCE SHA-256 code challenges. Polyfill it with expo-crypto.
+function hexToBuffer(hex: string): ArrayBuffer {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < hex.length; i += 2) {
+    bytes[i / 2] = parseInt(hex.slice(i, i + 2), 16);
+  }
+  return bytes.buffer;
+}
+
+if (typeof global.crypto === 'undefined' || !(global.crypto as any).subtle) {
+  (global as any).crypto = {
+    getRandomValues,
+    subtle: {
+      digest: async (algorithm: string, data: ArrayBuffer): Promise<ArrayBuffer> => {
+        // Convert ArrayBuffer back to the original ASCII string (PKCE verifier is base64url)
+        const bytes = new Uint8Array(data);
+        const str = Array.from(bytes, (b) => String.fromCharCode(b)).join('');
+        const algMap: Record<string, CryptoDigestAlgorithm> = {
+          'SHA-1': CryptoDigestAlgorithm.SHA1,
+          'SHA-256': CryptoDigestAlgorithm.SHA256,
+          'SHA-512': CryptoDigestAlgorithm.SHA512,
+        };
+        const alg = algMap[algorithm] ?? CryptoDigestAlgorithm.SHA256;
+        const hex = await digestStringAsync(alg, str, { encoding: CryptoEncoding.HEX });
+        return hexToBuffer(hex);
+      },
+    },
+  };
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 // expo-secure-store has a practical limit per key.
 // Split large values (like Supabase sessions) into chunks.
