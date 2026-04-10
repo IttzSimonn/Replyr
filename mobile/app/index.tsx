@@ -1,26 +1,29 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
-import { Redirect } from 'expo-router';
+import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Index() {
-  const [ready, setReady] = useState(false);
-  const [seen, setSeen] = useState(false);
+  const { session, loading } = useAuth();
 
   useEffect(() => {
-    SecureStore.getItemAsync('onboarding_seen').then((v) => {
-      setSeen(!!v);
-      setReady(true);
+    if (loading) return;
+
+    SecureStore.getItemAsync('onboarding_seen').then((seen) => {
+      if (!seen) {
+        router.replace('/onboarding');
+      } else if (session) {
+        router.replace('/(tabs)');
+      } else {
+        router.replace('/auth');
+      }
     });
-  }, []);
+  }, [loading, session]);
 
-  if (!ready) {
-    return (
-      <View style={{ flex: 1, backgroundColor: '#0F172A', alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator color="#7B61FF" size="large" />
-      </View>
-    );
-  }
-
-  return <Redirect href={seen ? '/(tabs)' : '/onboarding'} />;
+  return (
+    <View style={{ flex: 1, backgroundColor: '#0F172A', alignItems: 'center', justifyContent: 'center' }}>
+      <ActivityIndicator color="#7B61FF" size="large" />
+    </View>
+  );
 }

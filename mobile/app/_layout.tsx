@@ -1,5 +1,6 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { AuthProvider } from '../contexts/AuthContext';
 import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
 
 function Layout() {
@@ -23,8 +24,10 @@ function Layout() {
 
 export default function RootLayout() {
   return (
-    <ThemeProvider>
-      <Layout />
-    </ThemeProvider>
+    <AuthProvider>
+      <ThemeProvider>
+        <Layout />
+      </ThemeProvider>
+    </AuthProvider>
   );
 }

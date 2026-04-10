@@ -14,6 +14,7 @@ import * as SecureStore from 'expo-secure-store';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { clearHistory } from '../../services/history';
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
@@ -58,8 +59,20 @@ function Row({
 
 export default function ProfileScreen() {
   const { colors, isDark, toggleTheme } = useTheme();
+  const { user, signOut } = useAuth();
   const insets = useSafeAreaInsets();
   const [notifications, setNotifications] = useState(false);
+
+  // Derive display name: prefer full_name from metadata, then email prefix
+  const displayName = user?.user_metadata?.full_name
+    ?? user?.user_metadata?.name
+    ?? (user?.email ? user.email.split('@')[0] : null)
+    ?? 'Guest User';
+
+  const displayEmail = user?.email ?? 'Not signed in';
+
+  // Avatar initial — first letter of display name
+  const avatarLetter = displayName.charAt(0).toUpperCase();
 
   const handleLogout = () => {
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
@@ -68,6 +81,7 @@ export default function ProfileScreen() {
         text: 'Sign Out',
         style: 'destructive',
         onPress: async () => {
+          await signOut();
           await SecureStore.deleteItemAsync('onboarding_seen');
           router.replace('/onboarding');
         },
@@ -108,11 +122,15 @@ export default function ProfileScreen() {
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           >
-            <Text style={styles.avatarText}>R</Text>
+            <Text style={styles.avatarText}>{avatarLetter}</Text>
           </LinearGradient>
-          <View>
-            <Text style={[styles.userName, { color: colors.text }]}>Guest User</Text>
-            <Text style={[styles.userEmail, { color: colors.textMuted }]}>Not signed in</Text>
+          <View style={styles.userInfo}>
+            <Text style={[styles.userName, { color: colors.text }]} numberOfLines={1}>
+              {displayName}
+            </Text>
+            <Text style={[styles.userEmail, { color: colors.textMuted }]} numberOfLines={1}>
+              {displayEmail}
+            </Text>
           </View>
         </View>
 
@@ -231,6 +249,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
   },
+  userInfo: { flex: 1, minWidth: 0 },
   avatar: {
     width: 52,
     height: 52,
