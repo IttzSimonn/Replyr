@@ -1,14 +1,9 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-} from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from '../../contexts/ThemeContext';
 import { setPendingTemplate } from '../../services/store';
 import { DMContext } from '../../services/anthropic';
 
@@ -89,6 +84,7 @@ const TEMPLATES: Template[] = [
 ];
 
 export default function TemplatesScreen() {
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
 
   const handleSelect = (template: Template) => {
@@ -97,10 +93,12 @@ export default function TemplatesScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.bg }]}>
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-        <Text style={styles.title}>Templates</Text>
-        <Text style={styles.subtitle}>Tap any template to auto-fill the generator</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Templates</Text>
+        <Text style={[styles.subtitle, { color: colors.textMuted }]}>
+          Tap any template to auto-fill the generator
+        </Text>
       </View>
 
       <ScrollView
@@ -111,11 +109,10 @@ export default function TemplatesScreen() {
         {TEMPLATES.map((t) => (
           <TouchableOpacity
             key={t.id}
-            style={styles.card}
+            style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
             onPress={() => handleSelect(t)}
             activeOpacity={0.8}
           >
-            {/* Gradient accent stripe */}
             <LinearGradient
               colors={t.gradient}
               start={{ x: 0, y: 0 }}
@@ -123,29 +120,29 @@ export default function TemplatesScreen() {
               style={styles.stripe}
             />
             <View style={styles.cardInner}>
-              <View style={styles.cardLeft}>
-                <LinearGradient
-                  colors={t.gradient}
-                  style={styles.emojiWrap}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                >
-                  <Text style={styles.emoji}>{t.emoji}</Text>
-                </LinearGradient>
-              </View>
+              <LinearGradient
+                colors={t.gradient}
+                style={styles.emojiWrap}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Text style={styles.emoji}>{t.emoji}</Text>
+              </LinearGradient>
+
               <View style={styles.cardBody}>
-                <Text style={styles.name}>{t.name}</Text>
-                <Text style={styles.desc}>{t.description}</Text>
+                <Text style={[styles.name, { color: colors.text }]}>{t.name}</Text>
+                <Text style={[styles.desc, { color: colors.textSec }]}>{t.description}</Text>
                 <View style={styles.tags}>
-                  <View style={styles.tag}>
-                    <Text style={styles.tagText}>{t.data.intent}</Text>
+                  <View style={[styles.tag, { backgroundColor: colors.bg, borderColor: colors.border }]}>
+                    <Text style={[styles.tagText, { color: colors.textMuted }]}>{t.data.intent}</Text>
                   </View>
-                  <View style={styles.tag}>
-                    <Text style={styles.tagText}>{t.data.tone}</Text>
+                  <View style={[styles.tag, { backgroundColor: colors.bg, borderColor: colors.border }]}>
+                    <Text style={[styles.tagText, { color: colors.textMuted }]}>{t.data.tone}</Text>
                   </View>
                 </View>
               </View>
-              <Text style={styles.arrow}>→</Text>
+
+              <Text style={[styles.arrow, { color: colors.border }]}>→</Text>
             </View>
           </TouchableOpacity>
         ))}
@@ -154,58 +151,25 @@ export default function TemplatesScreen() {
   );
 }
 
+// ─── Styles (layout only — no colors) ────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0F172A' },
-  header: {
-    paddingHorizontal: 24,
-    paddingBottom: 16,
-  },
-  title: { fontSize: 28, fontWeight: '800', color: '#FFFFFF', letterSpacing: -0.5, marginBottom: 4 },
-  subtitle: { fontSize: 14, color: '#475569' },
+  container: { flex: 1 },
+  header: { paddingHorizontal: 24, paddingBottom: 16 },
+  title: { fontSize: 28, fontWeight: '800', letterSpacing: -0.5, marginBottom: 4 },
+  subtitle: { fontSize: 14 },
   scroll: { flex: 1 },
-  content: {
-    paddingHorizontal: 24,
-    paddingBottom: 40,
-    gap: 12,
-    maxWidth: 640,
-    alignSelf: 'center',
-    width: '100%',
-  },
-  card: {
-    backgroundColor: '#1E293B',
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
+  content: { paddingHorizontal: 24, paddingBottom: 40, gap: 12, maxWidth: 640, alignSelf: 'center', width: '100%' },
+  card: { borderRadius: 16, overflow: 'hidden', borderWidth: 1 },
   stripe: { height: 3 },
-  cardInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    gap: 14,
-  },
-  cardLeft: {},
-  emojiWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  cardInner: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 14 },
+  emojiWrap: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   emoji: { fontSize: 22 },
   cardBody: { flex: 1 },
-  name: { fontSize: 15, fontWeight: '700', color: '#F1F5F9', marginBottom: 3 },
-  desc: { fontSize: 13, color: '#64748B', marginBottom: 8, lineHeight: 18 },
+  name: { fontSize: 15, fontWeight: '700', marginBottom: 3 },
+  desc: { fontSize: 13, marginBottom: 8, lineHeight: 18 },
   tags: { flexDirection: 'row', gap: 6 },
-  tag: {
-    backgroundColor: '#0F172A',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#1E293B',
-  },
-  tagText: { fontSize: 11, fontWeight: '600', color: '#475569' },
-  arrow: { color: '#334155', fontSize: 18, fontWeight: '300' },
+  tag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1 },
+  tagText: { fontSize: 11, fontWeight: '600' },
+  arrow: { fontSize: 18, fontWeight: '300' },
 });

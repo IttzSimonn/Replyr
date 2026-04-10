@@ -17,10 +17,9 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as SecureStore from 'expo-secure-store';
 import * as Haptics from 'expo-haptics';
+import { useTheme } from '../../contexts/ThemeContext';
 import { generateDMs, DMContext } from '../../services/anthropic';
 import { setLastDMs, setLastContext, consumePendingTemplate } from '../../services/store';
-
-// ─── Constants ───────────────────────────────────────────────────────────────
 
 const INTENTS = ['Sell', 'Collab', 'Network', 'Recruit', 'Other'];
 const TONES = ['Confident', 'Friendly', 'Direct', 'Playful', 'Formal'];
@@ -41,32 +40,25 @@ const GREETINGS = [
   'Your next reply is one tap away.',
 ];
 
-// ─── Sub-components ──────────────────────────────────────────────────────────
+const FORM_KEY = 'saved_form';
+
+// ─── Sub-components (each calls useTheme internally) ─────────────────────────
 
 function SectionLabel({ label }: { label: string }) {
-  return <Text style={sectionStyles.label}>{label}</Text>;
+  const { colors } = useTheme();
+  return <Text style={[sectionStyles.label, { color: colors.textMuted }]}>{label}</Text>;
 }
 
 const sectionStyles = StyleSheet.create({
-  label: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#475569',
-    letterSpacing: 1.2,
-    marginBottom: 10,
-    textTransform: 'uppercase',
-  },
+  label: { fontSize: 11, fontWeight: '700', letterSpacing: 1.2, marginBottom: 10, textTransform: 'uppercase' },
 });
 
-function ChipRow({
-  options,
-  selected,
-  onSelect,
-}: {
+function ChipRow({ options, selected, onSelect }: {
   options: string[];
   selected: string;
   onSelect: (v: string) => void;
 }) {
+  const { colors } = useTheme();
   return (
     <View style={chipStyles.row}>
       {options.map((opt) => {
@@ -76,7 +68,10 @@ function ChipRow({
             key={opt}
             onPress={() => onSelect(active ? '' : opt)}
             activeOpacity={0.75}
-            style={[chipStyles.chip, active && chipStyles.chipActive]}
+            style={[
+              chipStyles.chip,
+              { backgroundColor: colors.surface, borderColor: active ? 'transparent' : colors.border },
+            ]}
           >
             {active && (
               <LinearGradient
@@ -86,7 +81,7 @@ function ChipRow({
                 style={StyleSheet.absoluteFill}
               />
             )}
-            <Text style={[chipStyles.text, active && chipStyles.textActive]}>{opt}</Text>
+            <Text style={[chipStyles.text, { color: active ? '#FFFFFF' : colors.textSec }]}>{opt}</Text>
           </TouchableOpacity>
         );
       })}
@@ -96,29 +91,11 @@ function ChipRow({
 
 const chipStyles = StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#334155',
-    backgroundColor: '#1E293B',
-    overflow: 'hidden',
-  },
-  chipActive: { borderColor: 'transparent' },
-  text: { fontSize: 14, color: '#64748B', fontWeight: '500' },
-  textActive: { color: '#FFFFFF', fontWeight: '600' },
+  chip: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: 20, borderWidth: 1, overflow: 'hidden' },
+  text: { fontSize: 14, fontWeight: '500' },
 });
 
-function InputCard({
-  icon,
-  label,
-  optional,
-  placeholder,
-  value,
-  onChangeText,
-  multiline,
-}: {
+function InputCard({ icon, label, optional, placeholder, value, onChangeText, multiline }: {
   icon: string;
   label: string;
   optional?: boolean;
@@ -127,18 +104,19 @@ function InputCard({
   onChangeText: (v: string) => void;
   multiline?: boolean;
 }) {
+  const { colors } = useTheme();
   return (
-    <View style={cardStyles.card}>
+    <View style={[cardStyles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       <Text style={cardStyles.icon}>{icon}</Text>
       <View style={cardStyles.body}>
-        <Text style={cardStyles.label}>
+        <Text style={[cardStyles.label, { color: colors.textSec }]}>
           {label}
-          {optional && <Text style={cardStyles.optional}> — optional</Text>}
+          {optional && <Text style={[cardStyles.optional, { color: colors.textMuted }]}> — optional</Text>}
         </Text>
         <TextInput
-          style={[cardStyles.input, multiline && cardStyles.inputMulti]}
+          style={[cardStyles.input, multiline && cardStyles.inputMulti, { color: colors.text }]}
           placeholder={placeholder}
-          placeholderTextColor="#334155"
+          placeholderTextColor={colors.placeholder}
           value={value}
           onChangeText={onChangeText}
           multiline={multiline}
@@ -153,28 +131,12 @@ function InputCard({
 }
 
 const cardStyles = StyleSheet.create({
-  card: {
-    backgroundColor: '#1E293B',
-    borderRadius: 16,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    borderWidth: 1,
-    borderColor: '#334155',
-    gap: 12,
-  },
+  card: { borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'flex-start', borderWidth: 1, gap: 12 },
   icon: { fontSize: 20, marginTop: 1 },
   body: { flex: 1 },
-  label: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#64748B',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: 6,
-  },
-  optional: { fontWeight: '400', color: '#475569', textTransform: 'none', letterSpacing: 0 },
-  input: { fontSize: 15, color: '#F1F5F9', padding: 0 },
+  label: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6 },
+  optional: { fontWeight: '400', textTransform: 'none', letterSpacing: 0 },
+  input: { fontSize: 15, padding: 0 },
   inputMulti: { minHeight: 72 },
 });
 
@@ -197,9 +159,8 @@ function BounceDot({ delay }: { delay: number }) {
 
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
-const FORM_KEY = 'saved_form';
-
 export default function HomeScreen() {
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [intent, setIntent] = useState('');
   const [target, setTarget] = useState('');
@@ -219,7 +180,6 @@ export default function HomeScreen() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Restore saved form on mount
   useEffect(() => {
     SecureStore.getItemAsync(FORM_KEY).then((raw) => {
       if (!raw) return;
@@ -236,7 +196,6 @@ export default function HomeScreen() {
     });
   }, []);
 
-  // Debounced auto-save
   const scheduleFormSave = (patch: object) => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
@@ -266,7 +225,6 @@ export default function HomeScreen() {
     Animated.timing(stepOpacity, { toValue: 1, duration: 300, useNativeDriver: true }).start();
   }, [stepIndex]);
 
-  // Load template when tab gains focus
   useFocusEffect(
     useCallback(() => {
       const t = consumePendingTemplate();
@@ -326,26 +284,21 @@ export default function HomeScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
+    <View style={[styles.container, { backgroundColor: colors.bg }]}>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView
           style={styles.scroll}
           contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Hero */}
           <Animated.View style={{ opacity: heroOpacity, transform: [{ translateY: heroSlide }] }}>
-            <Text style={styles.greeting}>{greeting}</Text>
-            <Text style={styles.helper}>
+            <Text style={[styles.greeting, { color: colors.text }]}>{greeting}</Text>
+            <Text style={[styles.helper, { color: colors.textMuted }]}>
               We'll optimize tone and structure for the best reply rate.
             </Text>
           </Animated.View>
 
-          {/* Intent */}
           <View style={styles.section}>
             <SectionLabel label="Intent" />
             <ChipRow options={INTENTS} selected={intent} onSelect={setAndSaveIntent} />
@@ -375,12 +328,10 @@ export default function HomeScreen() {
             <InputCard icon="💡" label="Target Context" optional placeholder="Their posts, business, vibe..." value={targetContext} onChangeText={setAndSaveTargetContext} multiline />
           </View>
 
-          {/* Spacer for sticky button */}
           <View style={{ height: 100 }} />
         </ScrollView>
 
-        {/* Sticky generate button */}
-        <View style={styles.stickyBottom}>
+        <View style={[styles.stickyBottom, { backgroundColor: colors.bg, borderTopColor: colors.surface }]}>
           <TouchableOpacity
             onPress={handleGenerate}
             disabled={loading}
@@ -399,9 +350,8 @@ export default function HomeScreen() {
         </View>
       </KeyboardAvoidingView>
 
-      {/* Loading overlay */}
       <Animated.View
-        style={[styles.overlay, { opacity: loadingOpacity }]}
+        style={[styles.overlay, { opacity: loadingOpacity, backgroundColor: colors.overlay }]}
         pointerEvents={loading ? 'auto' : 'none'}
       >
         <View style={styles.loadingInner}>
@@ -410,52 +360,32 @@ export default function HomeScreen() {
             <BounceDot delay={200} />
             <BounceDot delay={400} />
           </View>
-          <Animated.Text style={[styles.stepText, { opacity: stepOpacity }]}>
+          <Animated.Text style={[styles.stepText, { opacity: stepOpacity, color: colors.text }]}>
             {LOADING_STEPS[stepIndex]}
           </Animated.Text>
-          <Text style={styles.stepHint}>Creating 3 personalized messages...</Text>
+          <Text style={[styles.stepHint, { color: colors.textMuted }]}>Creating 3 personalized messages...</Text>
         </View>
       </Animated.View>
     </View>
   );
 }
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
+// ─── Styles (layout only — no colors) ────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0F172A' },
+  container: { flex: 1 },
   flex: { flex: 1 },
   scroll: { flex: 1 },
-  content: {
-    padding: 24,
-    paddingBottom: 16,
-    maxWidth: 640,
-    alignSelf: 'center',
-    width: '100%',
-  },
-  greeting: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: -0.5,
-    marginBottom: 8,
-    marginTop: 8,
-  },
-  helper: {
-    fontSize: 14,
-    color: '#475569',
-    marginBottom: 28,
-    lineHeight: 20,
-  },
+  content: { padding: 24, paddingBottom: 16, maxWidth: 640, alignSelf: 'center', width: '100%' },
+  greeting: { fontSize: 26, fontWeight: '800', letterSpacing: -0.5, marginBottom: 8, marginTop: 8 },
+  helper: { fontSize: 14, marginBottom: 28, lineHeight: 20 },
   section: { marginBottom: 20 },
   gap: { marginBottom: 12 },
   stickyBottom: {
     paddingHorizontal: 24,
     paddingBottom: Platform.OS === 'ios' ? 8 : 16,
     paddingTop: 12,
-    backgroundColor: '#0F172A',
     borderTopWidth: 1,
-    borderTopColor: '#1E293B',
     maxWidth: 640,
     alignSelf: 'center',
     width: '100%',
@@ -472,21 +402,10 @@ const styles = StyleSheet.create({
   btnDisabled: { opacity: 0.5 },
   btn: { paddingVertical: 18, alignItems: 'center', borderRadius: 16 },
   btnText: { color: '#FFFFFF', fontSize: 17, fontWeight: '700', letterSpacing: 0.2 },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(15, 23, 42, 0.94)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  overlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
   loadingInner: { alignItems: 'center', paddingHorizontal: 32 },
   dots: { flexDirection: 'row', gap: 10, marginBottom: 32 },
   dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#7B61FF' },
-  stepText: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  stepHint: { fontSize: 14, color: '#475569', textAlign: 'center' },
+  stepText: { fontSize: 20, fontWeight: '700', marginBottom: 10, textAlign: 'center' },
+  stepHint: { fontSize: 14, textAlign: 'center' },
 });
