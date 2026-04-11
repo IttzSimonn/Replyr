@@ -83,10 +83,10 @@ export default function AuthScreen() {
     try {
       setGoogleLoading(true);
 
-      // Linking.createURL produces the right scheme for each environment:
-      //   Expo Go       → exp://IP:PORT/--/auth/callback
-      //   Dev / Prod build → replyr://auth/callback
-      const redirectTo = Linking.createURL('auth/callback');
+      // Use the stable custom scheme — works in Expo Go too because
+      // ASWebAuthenticationSession (iOS) intercepts the URL internally
+      // without needing the OS to have replyr:// registered.
+      const redirectTo = 'replyr://auth/callback';
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
