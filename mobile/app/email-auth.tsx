@@ -184,6 +184,20 @@ export default function EmailAuthScreen() {
             </View>
           </View>
 
+          {/* Forgot password */}
+          {isLogin && (
+            <TouchableOpacity
+              onPress={() => router.push('/forgot-password')}
+              style={styles.forgotWrap}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.forgotText, { color: colors.textMuted }]}>
+                Forgot your password?{' '}
+                <Text style={styles.forgotLink}>Reset it here</Text>
+              </Text>
+            </TouchableOpacity>
+          )}
+
           {/* Submit */}
           <TouchableOpacity
             onPress={handleSubmit}
@@ -269,4 +283,7 @@ const styles = StyleSheet.create({
   toggle: { alignItems: 'center' },
   toggleText: { fontSize: 14 },
   toggleLink: { color: '#7B61FF', fontWeight: '600' },
+  forgotWrap: { alignItems: 'center', marginBottom: 8, marginTop: -4 },
+  forgotText: { fontSize: 13 },
+  forgotLink: { color: '#7B61FF', fontWeight: '600' },
 });

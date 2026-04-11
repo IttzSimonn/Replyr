@@ -15,6 +15,8 @@ function Layout() {
         <Stack.Screen name="email-auth" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
         <Stack.Screen name="results" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="forgot-password" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="reset-password" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="privacy" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="terms" options={{ animation: 'slide_from_right' }} />
       </Stack>

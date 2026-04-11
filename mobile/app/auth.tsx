@@ -63,14 +63,29 @@ export default function AuthScreen() {
   };
 
   // ─── Google ───────────────────────────────────────────────────────────────
-  // Note: Google OAuth requires a standalone build (not Expo Go) because it
-  // relies on custom URL scheme redirects. Works fully after `eas build`.
+  // WHY "blank localhost" appears:
+  //   Supabase only honours the `redirectTo` URL when it is whitelisted under
+  //   Authentication → URL Configuration → Redirect URLs in your project.
+  //   If it isn't listed, Supabase falls back to the project's Site URL
+  //   (default: http://localhost:3000) → Safari/Chrome shows a blank page.
+  //
+  // ONE-TIME SUPABASE DASHBOARD FIX:
+  //   Add ALL of these to Authentication → URL Configuration → Redirect URLs:
+  //     replyr://auth/callback                      ← standalone / dev build
+  //     exp://localhost:8081/--/auth/callback        ← Expo Go on simulator
+  //     exp://127.0.0.1:8081/--/auth/callback        ← alternate Expo Go form
+  //
+  // NOTE: Google OAuth won't return to Expo Go in some environments because
+  //   Expo Go doesn't register the exp:// scheme globally on the device.
+  //   Use `npx expo run:ios` (dev build) for the most reliable testing.
 
   const handleGoogle = async () => {
     try {
       setGoogleLoading(true);
 
-      // Build the redirect URI using the app's registered scheme
+      // Linking.createURL produces the right scheme for each environment:
+      //   Expo Go       → exp://IP:PORT/--/auth/callback
+      //   Dev / Prod build → replyr://auth/callback
       const redirectTo = Linking.createURL('auth/callback');
 
       const { data, error } = await supabase.auth.signInWithOAuth({
@@ -81,20 +96,57 @@ export default function AuthScreen() {
       if (error) throw error;
       if (!data.url) throw new Error('No OAuth URL returned from Supabase.');
 
-      // Open system browser for Google login
+      // ASWebAuthenticationSession (iOS) / Chrome Custom Tab (Android)
+      // closes automatically when the browser navigates to `redirectTo`
       const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
 
       if (result.type === 'success') {
-        // Extract PKCE code from redirect URL
-        const parsed = Linking.parse(result.url);
-        const code = parsed.queryParams?.code as string | undefined;
+        const url = result.url;
 
-        if (code) {
-          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-          if (exchangeError) throw exchangeError;
-          router.replace('/(tabs)');
+        // Detect "redirect URL not whitelisted" fallback — Supabase sent us
+        // to localhost instead of back to the app.
+        if (url.startsWith('http://localhost') || url.startsWith('https://localhost')) {
+          throw new Error(
+            'Redirect URL not whitelisted in Supabase.\n\n' +
+            'Go to: Supabase Dashboard → Authentication → URL Configuration → Redirect URLs\n' +
+            `Add: ${redirectTo}`,
+          );
         }
+
+        // Parse both query-string (?code=X) and hash-fragment (#access_token=X) params
+        const qIndex = url.indexOf('?');
+        const hIndex = url.indexOf('#');
+        const queryStr = qIndex !== -1 ? url.slice(qIndex + 1, hIndex !== -1 ? hIndex : undefined) : '';
+        const hashStr = hIndex !== -1 ? url.slice(hIndex + 1) : '';
+        const params: Record<string, string> = {};
+        for (const seg of [...queryStr.split('&'), ...hashStr.split('&')]) {
+          const eq = seg.indexOf('=');
+          if (eq === -1) continue;
+          params[decodeURIComponent(seg.slice(0, eq))] = decodeURIComponent(seg.slice(eq + 1));
+        }
+
+        // PKCE flow: exchange code for session (preferred)
+        if (params.code) {
+          const { error: exchErr } = await supabase.auth.exchangeCodeForSession(params.code);
+          if (exchErr) throw exchErr;
+          router.replace('/(tabs)');
+          return;
+        }
+
+        // Implicit flow fallback: set session from tokens directly
+        if (params.access_token) {
+          const { error: sessErr } = await supabase.auth.setSession({
+            access_token: params.access_token,
+            refresh_token: params.refresh_token ?? '',
+          });
+          if (sessErr) throw sessErr;
+          router.replace('/(tabs)');
+          return;
+        }
+
+        throw new Error('Sign-in completed but no session was returned. Please try again.');
       }
+      // result.type === 'cancel' | 'dismiss': user closed the browser — silent
     } catch (e: any) {
       Alert.alert(
         'Google Sign In Failed',
