@@ -14,6 +14,7 @@ interface Template {
   emoji: string;
   gradient: readonly [string, string];
   data: Partial<DMContext>;
+  pro?: boolean;
 }
 
 const TEMPLATES: Template[] = [
@@ -40,6 +41,7 @@ const TEMPLATES: Template[] = [
     emoji: '✅',
     gradient: ['#D97706', '#F59E0B'],
     data: { intent: 'Sell', tone: 'Direct', goal: 'Close the deal' },
+    pro: true,
   },
   {
     id: '4',
@@ -72,6 +74,7 @@ const TEMPLATES: Template[] = [
     emoji: '💼',
     gradient: ['#8B5CF6', '#A78BFA'],
     data: { intent: 'Recruit', tone: 'Formal', goal: 'Get an interview or introduction call' },
+    pro: true,
   },
   {
     id: '8',
@@ -80,6 +83,7 @@ const TEMPLATES: Template[] = [
     emoji: '⭐',
     gradient: ['#EC4899', '#F43F5E'],
     data: { intent: 'Collab', tone: 'Playful', goal: 'Get a content collaboration or mention' },
+    pro: true,
   },
 ];
 
@@ -130,7 +134,14 @@ export default function TemplatesScreen() {
               </LinearGradient>
 
               <View style={styles.cardBody}>
-                <Text style={[styles.name, { color: colors.text }]}>{t.name}</Text>
+                <View style={styles.nameRow}>
+                  <Text style={[styles.name, { color: colors.text }]}>{t.name}</Text>
+                  {t.pro && (
+                    <View style={styles.proBadge}>
+                      <Text style={styles.proBadgeText}>PRO</Text>
+                    </View>
+                  )}
+                </View>
                 <Text style={[styles.desc, { color: colors.textSec }]}>{t.description}</Text>
                 <View style={styles.tags}>
                   <View style={[styles.tag, { backgroundColor: colors.bg, borderColor: colors.border }]}>
@@ -166,7 +177,10 @@ const styles = StyleSheet.create({
   emojiWrap: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   emoji: { fontSize: 22 },
   cardBody: { flex: 1 },
-  name: { fontSize: 15, fontWeight: '700', marginBottom: 3 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 3 },
+  name: { fontSize: 15, fontWeight: '700' },
+  proBadge: { backgroundColor: '#7B61FF', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
+  proBadgeText: { fontSize: 9, fontWeight: '800', color: '#FFFFFF', letterSpacing: 0.8 },
   desc: { fontSize: 13, marginBottom: 8, lineHeight: 18 },
   tags: { flexDirection: 'row', gap: 6 },
   tag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1 },

@@ -25,21 +25,27 @@ const { width } = Dimensions.get('window');
 const DM_META = [
   {
     label: 'Curiosity Hook',
+    shortTag: 'Clear and direct',
     gradient: ['#7B61FF', '#9B81FF'] as const,
     why: 'Opens a loop they feel compelled to close',
     replyRate: 82,
+    bestOption: false,
   },
   {
     label: 'Direct Value',
+    shortTag: 'Friendly and engaging',
     gradient: ['#059669', '#10B981'] as const,
     why: "Clearly shows what's in it for them",
     replyRate: 74,
+    bestOption: false,
   },
   {
     label: 'Casual Touch',
+    shortTag: 'Strong closing angle',
     gradient: ['#D97706', '#F59E0B'] as const,
     why: 'Low resistance — feels like a friend reaching out',
     replyRate: 89,
+    bestOption: true,
   },
 ];
 
@@ -266,7 +272,25 @@ export default function ResultsScreen() {
               <View key={i} style={[styles.dmCard, { width: width - 48, backgroundColor: colors.surface, borderColor: colors.border }]}>
                 <LinearGradient colors={meta.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.dmStripe} />
                 <View style={styles.dmInner}>
-                  <Text style={[styles.dmLabel, { color: colors.textSec }]}>DM {i + 1} — {meta.label}</Text>
+                  <View style={styles.dmLabelRow}>
+                    <View style={styles.dmLabelLeft}>
+                      <Text style={[styles.dmLabel, { color: colors.textSec }]}>DM {i + 1} — {meta.label}</Text>
+                      <Text style={[styles.dmShortTag, { color: colors.textMuted }]}>{meta.shortTag}</Text>
+                    </View>
+                    {meta.bestOption && (
+                      <LinearGradient
+                        colors={meta.gradient}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.bestBadge}
+                      >
+                        <Text style={styles.bestBadgeText}>✨ Best option</Text>
+                      </LinearGradient>
+                    )}
+                  </View>
+                  {meta.bestOption && (
+                    <Text style={[styles.bestSubtitle, { color: colors.textMuted }]}>Most likely to get a reply</Text>
+                  )}
 
                   <View style={[styles.bubble, { backgroundColor: colors.bg, borderColor: colors.surface }]}>
                     <TypingText text={messages[i] || ''} style={[styles.bubbleText, { color: colors.text }]} delay={i * 80} />
@@ -434,7 +458,13 @@ const styles = StyleSheet.create({
   dmCard: { borderRadius: 20, marginHorizontal: 24, overflow: 'hidden', borderWidth: 1 },
   dmStripe: { height: 3 },
   dmInner: { padding: 20 },
-  dmLabel: { fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14 },
+  dmLabelRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 },
+  dmLabelLeft: { flex: 1 },
+  dmLabel: { fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 },
+  dmShortTag: { fontSize: 11, marginBottom: 10 },
+  bestBadge: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 8, marginLeft: 8, alignSelf: 'flex-start' },
+  bestBadgeText: { fontSize: 11, fontWeight: '700', color: '#FFFFFF' },
+  bestSubtitle: { fontSize: 12, marginBottom: 12, fontStyle: 'italic' },
   bubble: { borderRadius: 18, borderBottomLeftRadius: 4, padding: 16, marginBottom: 14, borderWidth: 1, minHeight: 80 },
   bubbleText: { fontSize: 16, lineHeight: 26 },
   insightRow: { marginBottom: 12 },

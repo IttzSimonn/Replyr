@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Alert,
 } from 'react-native';
+import { router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Clipboard from 'expo-clipboard';
@@ -90,6 +91,13 @@ export default function HistoryScreen() {
           <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>
             Your generated messages will appear here after your first generation.
           </Text>
+          <TouchableOpacity
+            style={styles.emptyCta}
+            onPress={() => router.navigate('/(tabs)/')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.emptyCtaText}>Generate your first DM →</Text>
+          </TouchableOpacity>
         </View>
       </View>
     );
@@ -198,7 +206,14 @@ const styles = StyleSheet.create({
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 },
   emptyEmoji: { fontSize: 52, marginBottom: 16 },
   emptyTitle: { fontSize: 20, fontWeight: '700', marginBottom: 8 },
-  emptySubtitle: { fontSize: 15, textAlign: 'center', lineHeight: 22 },
+  emptySubtitle: { fontSize: 15, textAlign: 'center', lineHeight: 22, marginBottom: 24 },
+  emptyCta: {
+    backgroundColor: '#7B61FF',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 14,
+  },
+  emptyCtaText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
   card: { borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1 },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   cardMeta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
