@@ -6,51 +6,111 @@
   <title>Terms of Service — Replyr</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root { --bg: #0B0F1A; --text: #F0F2FF; --muted: rgba(240,242,255,0.5); --border: rgba(255,255,255,0.08); }
-    body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
-    .wrap { max-width: 680px; margin: 0 auto; padding: 64px 24px 96px; }
-    .back { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); text-decoration: none; font-size: 14px; margin-bottom: 40px; transition: color 0.15s; }
+    :root {
+      --bg: #0B0F1A; --surface: #13182A;
+      --border: rgba(255,255,255,0.08);
+      --text: #F0F2FF; --muted: rgba(240,242,255,0.5);
+    }
+    html, body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .wrap { max-width: 660px; margin: 0 auto; padding: 56px 24px 96px; }
+    .back {
+      display: inline-flex; align-items: center; gap: 6px;
+      color: var(--muted); text-decoration: none; font-size: 14px;
+      margin-bottom: 44px; transition: color 0.15s;
+    }
     .back:hover { color: var(--text); }
-    h1 { font-size: 32px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 8px; }
-    .updated { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
-    .intro { font-size: 15px; line-height: 1.7; color: var(--muted); margin-bottom: 40px; border-bottom: 1px solid var(--border); padding-bottom: 32px; }
-    .section { margin-bottom: 32px; }
-    h2 { font-size: 15px; font-weight: 700; margin-bottom: 10px; }
-    p { font-size: 14px; line-height: 1.8; color: var(--muted); white-space: pre-line; }
-    footer { margin-top: 64px; border-top: 1px solid var(--border); padding-top: 24px; display: flex; gap: 20px; flex-wrap: wrap; }
-    footer a { font-size: 13px; color: var(--muted); text-decoration: none; } footer a:hover { color: var(--text); }
+    h1 { font-size: 34px; font-weight: 800; letter-spacing: -0.8px; margin-bottom: 6px; }
+    .updated { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+    .intro {
+      font-size: 15px; line-height: 1.75; color: var(--muted);
+      margin-bottom: 44px; padding-bottom: 36px;
+      border-bottom: 1px solid var(--border);
+    }
+    .section { margin-bottom: 36px; }
+    h2 { font-size: 14px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--text); margin-bottom: 10px; }
+    p { font-size: 15px; line-height: 1.8; color: var(--muted); }
+    footer {
+      margin-top: 72px; padding-top: 24px;
+      border-top: 1px solid var(--border);
+      display: flex; gap: 24px; flex-wrap: wrap;
+    }
+    footer a { font-size: 13px; color: var(--muted); text-decoration: none; transition: color 0.15s; }
+    footer a:hover { color: var(--text); }
+    @media (max-width: 480px) { .wrap { padding: 40px 20px 72px; } h1 { font-size: 28px; } }
   </style>
 </head>
 <body>
   <div class="wrap">
     <a href="index.html" class="back">← Back</a>
+
     <h1>Terms of Service</h1>
     <p class="updated">Last updated: April 12, 2026</p>
-    <p class="intro">Please read these Terms of Service carefully before using Replyr. They govern your use of the App and form a legally binding agreement between you and Replyr.</p>
+    <p class="intro">
+      By using Replyr, you agree to these Terms. Please read them — they're written to be clear and fair, not to confuse you.
+    </p>
 
-    <div class="section"><h2>1. Acceptance of Terms</h2><p>By downloading, installing, or using Replyr ("the App"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree, do not use the App.</p></div>
-    <div class="section"><h2>2. Eligibility</h2><p>You must be at least 13 years old to use Replyr. By using the App, you confirm that you meet this requirement. If you are under 18, you confirm that you have obtained consent from a parent or legal guardian.</p></div>
-    <div class="section"><h2>3. Description of Service</h2><p>Replyr is an AI-powered direct message generation tool that helps users craft outreach messages. The service uses third-party AI providers to generate content based on user inputs. We do not guarantee that generated messages will achieve specific results such as replies or conversions.</p></div>
-    <div class="section"><h2>4. User Accounts</h2><p>You agree to provide accurate and complete information when creating an account. You are responsible for maintaining the confidentiality of your account credentials and for all activity under your account. You must notify us immediately of any unauthorized access at support@replyr.app.</p></div>
-    <div class="section"><h2>5. Acceptable Use</h2><p>You agree not to use Replyr to: (a) send spam or unsolicited mass messages; (b) harass, threaten, or harm any individual; (c) violate any applicable local, national, or international laws; (d) generate abusive, illegal, or discriminatory content; (e) attempt to reverse-engineer or exploit the App; (f) use the App in any way that could damage, disable, or impair the service.</p></div>
-    <div class="section"><h2>6. Content Ownership</h2><p>Messages generated by Replyr using your inputs are considered your content. You retain full ownership of any generated output. Replyr claims no ownership over messages you generate.</p></div>
-    <div class="section"><h2>7. Free Tier and Subscriptions</h2><p>Replyr offers a free tier with a limited number of lifetime generations. Pro subscriptions are available for unlimited access. All subscription fees are processed through Apple App Store or Google Play. Subscriptions automatically renew unless cancelled at least 24 hours before the end of the current billing period.</p></div>
-    <div class="section"><h2>8. Refund Policy</h2><p>Refunds are handled according to the refund policy of Apple App Store or Google Play. We do not process refunds directly.</p></div>
-    <div class="section"><h2>9. Disclaimer of Warranties</h2><p>Replyr is provided "as is" and "as available" without warranties of any kind. We do not warrant that the service will be uninterrupted, error-free, or that AI-generated content will be accurate or suitable for any specific purpose.</p></div>
-    <div class="section"><h2>10. Limitation of Liability</h2><p>To the fullest extent permitted by applicable law, Replyr and its owners, employees, and affiliates shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of the App. Our total liability shall not exceed the amount you paid us in the 12 months preceding the claim.</p></div>
-    <div class="section"><h2>11. Termination</h2><p>We reserve the right to suspend or terminate your account at any time, with or without notice, if you violate these Terms. You may delete your account at any time through the App settings.</p></div>
-    <div class="section"><h2>12. Changes to Terms</h2><p>We reserve the right to update these Terms at any time. We will notify you of significant changes via the App or email. Continued use of Replyr after changes constitutes acceptance of the updated Terms.</p></div>
-    <div class="section"><h2>13. Governing Law</h2><p>These Terms are governed by and construed in accordance with the laws of Belgium. Any disputes arising from these Terms shall be subject to the exclusive jurisdiction of the competent courts in Belgium, without prejudice to your rights as a consumer under mandatory EU consumer protection law.</p></div>
-    <div class="section"><h2>14. Severability</h2><p>If any provision of these Terms is found to be unenforceable or invalid, that provision shall be limited or eliminated to the minimum extent necessary, and the remaining provisions shall remain in full force and effect.</p></div>
-    <div class="section"><h2>15. Contact</h2><p>For questions about these Terms, contact us at: support@replyr.app. We aim to respond within 5 business days.</p></div>
+    <div class="section">
+      <h2>1. Acceptance</h2>
+      <p>By downloading or using the Replyr app, you agree to be bound by these Terms of Service. If you do not agree, please do not use the app.</p>
+    </div>
+
+    <div class="section">
+      <h2>2. What Replyr Does</h2>
+      <p>Replyr is an AI-powered tool that helps you generate outreach messages (DMs). You provide context — we generate message suggestions. What you do with those messages is entirely up to you.</p>
+    </div>
+
+    <div class="section">
+      <h2>3. Your Responsibility</h2>
+      <p>You agree to use Replyr responsibly. You may not use the app to:<br><br>
+      — Send spam or unsolicited bulk messages.<br>
+      — Harass, threaten, or harm other people.<br>
+      — Generate or send illegal or discriminatory content.<br>
+      — Violate any applicable laws or platform rules.<br><br>
+      You are fully responsible for the messages you choose to send.</p>
+    </div>
+
+    <div class="section">
+      <h2>4. AI Disclaimer</h2>
+      <p>Replyr uses AI to generate message suggestions. We do not guarantee that generated messages will result in replies, conversions, or any specific outcome. Results will vary. Use your own judgement before sending any message.</p>
+    </div>
+
+    <div class="section">
+      <h2>5. Free &amp; Pro Access</h2>
+      <p>Replyr offers a free tier with a limited number of lifetime message generations. A Pro subscription unlocks unlimited access. Subscriptions are billed through the Apple App Store or Google Play and renew automatically unless cancelled before the renewal date.</p>
+    </div>
+
+    <div class="section">
+      <h2>6. Intellectual Property</h2>
+      <p>Messages generated using your inputs belong to you — we claim no ownership over your output. The Replyr app itself, including its design, branding, and code, belongs to Replyr.</p>
+    </div>
+
+    <div class="section">
+      <h2>7. Limitation of Liability</h2>
+      <p>Replyr is provided "as is." To the fullest extent permitted by law, we are not liable for any damages arising from your use of the app, including but not limited to missed opportunities, account restrictions on other platforms, or any indirect loss.</p>
+    </div>
+
+    <div class="section">
+      <h2>8. Changes to These Terms</h2>
+      <p>We may update these Terms from time to time. We'll notify you of significant changes through the app or by email. Continued use of Replyr after changes means you accept the updated Terms.</p>
+    </div>
+
+    <div class="section">
+      <h2>9. Contact</h2>
+      <p>Questions about these Terms? Contact us at:<br>
+      <a href="mailto:support@usereplyr.com" style="color: #7B61FF; text-decoration: none;">support@usereplyr.com</a></p>
+    </div>
 
     <footer>
       <a href="index.html">Home</a>
       <a href="privacy.html">Privacy Policy</a>
-      <a href="mailto:support@replyr.app">Support</a>
+      <a href="support.html">Support</a>
     </footer>
   </div>
 </body>

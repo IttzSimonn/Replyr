@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Replyr — Generate DMs that actually get replies</title>
-  <meta name="description" content="AI-powered outreach for creators, freelancers & entrepreneurs. Generate DMs that actually get replies." />
+  <meta name="description" content="Generate DMs that actually get replies. AI-powered outreach for creators, freelancers & entrepreneurs." />
   <meta property="og:title" content="Replyr" />
   <meta property="og:description" content="Generate DMs that actually get replies." />
   <meta property="og:type" content="website" />
@@ -32,7 +32,6 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* ── Layout ── */
     .page {
       display: flex;
       flex-direction: column;
@@ -43,7 +42,6 @@
       text-align: center;
     }
 
-    /* ── Glow background ── */
     .page::before {
       content: '';
       position: fixed;
@@ -52,7 +50,7 @@
       transform: translateX(-50%);
       width: 700px;
       height: 700px;
-      background: radial-gradient(circle, rgba(123,97,255,0.12) 0%, transparent 70%);
+      background: radial-gradient(circle, rgba(123,97,255,0.13) 0%, transparent 70%);
       pointer-events: none;
       z-index: 0;
     }
@@ -63,12 +61,11 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 0;
-      max-width: 540px;
+      max-width: 520px;
       width: 100%;
     }
 
-    /* ── Logo ── */
+    /* Logo */
     .logo {
       width: 88px;
       height: 88px;
@@ -77,42 +74,44 @@
       box-shadow: 0 8px 40px rgba(123,97,255,0.3);
     }
 
-    /* ── Title ── */
+    /* Title */
     h1 {
       font-size: clamp(48px, 10vw, 72px);
       font-weight: 800;
       letter-spacing: -2px;
       line-height: 1;
-      margin-bottom: 16px;
-      background: linear-gradient(135deg, #F0F2FF 30%, rgba(240,242,255,0.6));
+      margin-bottom: 20px;
+      background: linear-gradient(135deg, #F0F2FF 30%, rgba(240,242,255,0.55));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
     }
 
-    /* ── Subtitle ── */
+    /* Primary subtitle */
     .subtitle {
       font-size: clamp(18px, 4vw, 22px);
       font-weight: 600;
       color: var(--text);
-      margin-bottom: 12px;
-      line-height: 1.3;
+      margin-bottom: 10px;
+      line-height: 1.35;
     }
 
+    /* Secondary subtitle */
     .supporting {
       font-size: 15px;
       color: var(--muted);
-      line-height: 1.6;
+      line-height: 1.65;
       margin-bottom: 48px;
+      max-width: 380px;
     }
 
-    /* ── Buttons ── */
+    /* Buttons */
     .buttons {
       display: flex;
       flex-direction: column;
       gap: 12px;
       width: 100%;
-      max-width: 280px;
+      max-width: 272px;
     }
 
     .btn {
@@ -120,23 +119,28 @@
       align-items: center;
       justify-content: center;
       gap: 10px;
-      padding: 16px 24px;
+      padding: 15px 24px;
       border-radius: 14px;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 600;
       text-decoration: none;
-      transition: opacity 0.15s, transform 0.15s;
+      transition: opacity 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
       cursor: pointer;
       border: none;
+      letter-spacing: -0.1px;
     }
-
-    .btn:hover { opacity: 0.88; transform: translateY(-1px); }
-    .btn:active { transform: translateY(0); opacity: 1; }
 
     .btn-apple {
       background: #FFFFFF;
       color: #000000;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
     }
+    .btn-apple:hover {
+      opacity: 0.92;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(0,0,0,0.35);
+    }
+    .btn-apple:active { transform: translateY(0); opacity: 1; box-shadow: none; }
 
     .btn-google {
       background: var(--surface);
@@ -147,29 +151,28 @@
     }
 
     .btn-icon {
-      width: 20px;
-      height: 20px;
+      width: 19px;
+      height: 19px;
       flex-shrink: 0;
     }
 
-    /* Coming soon badge */
     .badge {
       font-size: 11px;
       font-weight: 600;
-      background: rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.07);
       color: var(--muted);
       padding: 2px 8px;
       border-radius: 20px;
-      margin-left: 4px;
+      margin-left: 2px;
     }
 
-    /* ── Footer ── */
+    /* Footer */
     footer {
       position: relative;
       z-index: 1;
       margin-top: 64px;
       display: flex;
-      gap: 24px;
+      gap: 28px;
       flex-wrap: wrap;
       justify-content: center;
     }
@@ -180,12 +183,11 @@
       text-decoration: none;
       transition: color 0.15s;
     }
-
     footer a:hover { color: var(--text); }
 
     @media (max-width: 400px) {
       .page { padding: 48px 20px; }
-      footer { gap: 16px; }
+      footer { gap: 18px; }
     }
   </style>
 </head>
@@ -193,20 +195,15 @@
   <main class="page">
     <section class="hero">
 
-      <!-- Logo -->
       <img class="logo" src="logo.png" alt="Replyr logo" />
 
-      <!-- Title -->
       <h1>Replyr</h1>
 
-      <!-- Subtitle -->
       <p class="subtitle">Generate DMs that actually get replies.</p>
-      <p class="supporting">AI-powered outreach for creators, freelancers &amp; entrepreneurs.</p>
+      <p class="supporting">Get more clients, collaborations, and opportunities with AI-powered outreach.</p>
 
-      <!-- Download buttons -->
       <div class="buttons">
 
-        <!-- App Store -->
         <a href="#" class="btn btn-apple">
           <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
             <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
@@ -214,23 +211,20 @@
           Download on the App Store
         </a>
 
-        <!-- Google Play (placeholder) -->
         <div class="btn btn-google">
           <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
             <path d="M3.18 23.76c.37.2.8.2 1.18.02l12.06-6.97-2.58-2.58-10.66 9.53zM.5 1.4C.19 1.8 0 2.35 0 3.04v17.92c0 .69.19 1.24.51 1.64l.09.08 10.03-10.03v-.24L.59 1.32.5 1.4zM20.49 10.46l-2.74-1.58-2.89 2.89 2.89 2.89 2.76-1.59c.79-.45.79-1.17-.02-1.61zM4.36.22L16.42 7.2l-2.58 2.58L3.18.25c.38-.2.83-.2 1.18-.03z"/>
           </svg>
-          Google Play
-          <span class="badge">Coming soon</span>
+          Available soon on Android
         </div>
 
       </div>
     </section>
 
-    <!-- Footer -->
     <footer>
       <a href="privacy.html">Privacy Policy</a>
       <a href="terms.html">Terms of Service</a>
-      <a href="mailto:support@replyr.app">Support</a>
+      <a href="support.html">Support</a>
     </footer>
   </main>
 </body>
