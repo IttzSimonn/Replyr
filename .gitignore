@@ -1,3 +1,4 @@
+# Python
 .env
 __pycache__/
 *.pyc
@@ -5,8 +6,41 @@ __pycache__/
 .venv/
 venv/
 env/
+*.egg-info/
+
+# Editors
 .idea/
 .vscode/
-*.egg-info/
+
+# Build
 dist/
 build/
+
+# Node / React Native / Expo
+node_modules/
+.expo/
+.expo-shared/
+*.orig.*
+web-build/
+dist/
+
+# Logs
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# Package locks (optional — remove if you want to commit them)
+package-lock.json
+yarn.lock
+
+# iOS / Android native
+mobile/ios/Pods/
+mobile/android/.gradle/
+mobile/android/app/build/
+mobile/android/build/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
