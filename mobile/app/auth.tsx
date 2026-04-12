@@ -6,6 +6,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -172,14 +173,11 @@ export default function AuthScreen() {
       <View style={styles.inner}>
         {/* Logo */}
         <View style={styles.logoWrap}>
-          <LinearGradient
-            colors={['#7B61FF', '#5B9CFF']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.logoCircle}
-          >
-            <Ionicons name="mail" size={38} color="#FFFFFF" />
-          </LinearGradient>
+          <Image
+            source={require('../assets/images/icon.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
           <Text style={[styles.logoText, { color: colors.text }]}>Replyr</Text>
           <Text style={[styles.tagline, { color: colors.textMuted }]}>
             The fastest way to get replies
@@ -279,18 +277,11 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   logoWrap: { alignItems: 'center', marginTop: 40 },
-  logoCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
+  logoImage: {
+    width: 90,
+    height: 90,
+    borderRadius: 22,
     marginBottom: 16,
-    shadowColor: '#7B61FF',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 8,
   },
   logoText: { fontSize: 34, fontWeight: '800', letterSpacing: -0.5, marginBottom: 8 },
   tagline: { fontSize: 15, textAlign: 'center' },
