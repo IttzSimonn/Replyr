@@ -1,9 +1,10 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import anthropic
 import os
-import re
+import json
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -31,7 +32,7 @@ def get_client() -> anthropic.Anthropic:
     return _client
 
 
-# Cached — never changes between requests, so Haiku will serve this from cache
+# Static — cached by Haiku after first request
 SYSTEM_PROMPT = """You are a persuasion expert. Write 3 high-converting DMs that get real replies.
 
 Rules:
@@ -63,18 +64,12 @@ class DMRequest(BaseModel):
     target_context: str = ""
 
 
-class DMResponse(BaseModel):
-    dm1: str
-    dm2: str
-    dm3: str
-
-
 @app.get("/")
 def health():
     return {"status": "ok", "service": "Replyr API"}
 
 
-@app.post("/generate", response_model=DMResponse)
+@app.post("/generate")
 def generate_dms(req: DMRequest):
     client = get_client()
 
@@ -89,32 +84,22 @@ def generate_dms(req: DMRequest):
     if req.target_context:
         user_message += f"\nAbout target: {req.target_context}"
 
-    try:
-        response = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=450,
-            system=[{
-                "type": "text",
-                "text": SYSTEM_PROMPT,
-                "cache_control": {"type": "ephemeral"},
-            }],
-            messages=[{"role": "user", "content": user_message}],
-        )
-    except anthropic.APIError as e:
-        raise HTTPException(status_code=502, detail=str(e))
+    def event_stream():
+        try:
+            with client.messages.stream(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=450,
+                system=[{
+                    "type": "text",
+                    "text": SYSTEM_PROMPT,
+                    "cache_control": {"type": "ephemeral"},
+                }],
+                messages=[{"role": "user", "content": user_message}],
+            ) as stream:
+                for text in stream.text_stream:
+                    yield f"data: {json.dumps({'t': text})}\n\n"
+            yield "data: [DONE]\n\n"
+        except anthropic.APIError as e:
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
 
-    text = next(
-        (b.text for b in response.content if b.type == "text"), ""
-    )
-
-    return DMResponse(
-        dm1=_extract(text, 1),
-        dm2=_extract(text, 2),
-        dm3=_extract(text, 3),
-    )
-
-
-def _extract(text: str, n: int) -> str:
-    pattern = rf"DM\s*{n}[:\s]+([\s\S]*?)(?=\s*DM\s*{n+1}[:\s]|$)"
-    match = re.search(pattern, text, re.IGNORECASE)
-    return match.group(1).strip() if match else ""
+    return StreamingResponse(event_stream(), media_type="text/event-stream")

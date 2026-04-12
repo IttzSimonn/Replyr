@@ -143,6 +143,7 @@ export default function ResultsScreen() {
   const [regenerating, setRegenerating] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
   const [copyKey, setCopyKey] = useState(0);
+  const [streamText, setStreamText] = useState('');
 
   const swipeRef = useRef<ScrollView>(null);
   const loadingOpacity = useRef(new Animated.Value(0)).current;
@@ -209,11 +210,12 @@ export default function ResultsScreen() {
       ? { ...ctx, targetContext: `${ctx.targetContext ?? ''}\n\nStyle note: ${extraInstruction}`.trim() }
       : ctx;
 
+    setStreamText('');
     setRegenerating(true);
     startCycling();
     Animated.timing(loadingOpacity, { toValue: 1, duration: 250, useNativeDriver: true }).start();
     try {
-      const newDms = await generateDMs(contextWithNote);
+      const newDms = await generateDMs(contextWithNote, (text) => setStreamText(text));
       const stored: StoredDMs = { ...newDms, platform: dms?.platform ?? ctx.platform };
       setLastDMs(stored);
       setDms(stored);
@@ -426,15 +428,26 @@ export default function ResultsScreen() {
         pointerEvents={regenerating ? 'auto' : 'none'}
       >
         <View style={styles.loadingInner}>
-          <View style={styles.dots}>
-            <BounceDot delay={0} />
-            <BounceDot delay={200} />
-            <BounceDot delay={400} />
-          </View>
-          <Animated.Text style={[styles.stepText, { opacity: stepOpacity, color: colors.text }]}>
-            {LOADING_STEPS[stepIndex]}
-          </Animated.Text>
-          <Text style={[styles.stepHint, { color: colors.textMuted }]}>Crafting fresh messages...</Text>
+          {streamText ? (
+            <>
+              <Text style={[styles.streamLabel, { color: colors.textMuted }]}>Rewriting your DMs...</Text>
+              <View style={[styles.streamBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <Text style={[styles.streamText, { color: colors.text }]}>{streamText}</Text>
+              </View>
+            </>
+          ) : (
+            <>
+              <View style={styles.dots}>
+                <BounceDot delay={0} />
+                <BounceDot delay={200} />
+                <BounceDot delay={400} />
+              </View>
+              <Animated.Text style={[styles.stepText, { opacity: stepOpacity, color: colors.text }]}>
+                {LOADING_STEPS[stepIndex]}
+              </Animated.Text>
+              <Text style={[styles.stepHint, { color: colors.textMuted }]}>Crafting fresh messages...</Text>
+            </>
+          )}
         </View>
       </Animated.View>
     </View>
@@ -519,4 +532,7 @@ const styles = StyleSheet.create({
   dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#7B61FF' },
   stepText: { fontSize: 20, fontWeight: '700', marginBottom: 10, textAlign: 'center' },
   stepHint: { fontSize: 14, textAlign: 'center' },
+  streamLabel: { fontSize: 12, fontWeight: '600', marginBottom: 12, letterSpacing: 0.5 },
+  streamBox: { width: '100%', maxHeight: 260, borderRadius: 16, borderWidth: 1, padding: 16 },
+  streamText: { fontSize: 14, lineHeight: 22 },
 });

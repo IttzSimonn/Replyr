@@ -176,6 +176,7 @@ export default function HomeScreen() {
   const [usageCount, setUsageCount] = useState(0);
   const [showUpsell, setShowUpsell] = useState(false);
   const [showHint, setShowHint] = useState(false);
+  const [streamText, setStreamText] = useState('');
   const [greeting] = useState(GREETINGS[Math.floor(Math.random() * GREETINGS.length)]);
 
   const heroOpacity = useRef(new Animated.Value(0)).current;
@@ -299,13 +300,14 @@ export default function HomeScreen() {
     const context: DMContext = { intent, target, goal, tone, platform, senderInfo, targetContext };
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
 
+    setStreamText('');
     setLoading(true);
     startCycling();
     Animated.timing(loadingOpacity, { toValue: 1, duration: 250, useNativeDriver: true }).start();
 
     try {
       setLastContext(context);
-      const dms = await generateDMs(context);
+      const dms = await generateDMs(context, (text) => setStreamText(text));
       setLastDMs({ ...dms, platform });
 
       // Increment and update count
@@ -457,15 +459,26 @@ export default function HomeScreen() {
         pointerEvents={loading ? 'auto' : 'none'}
       >
         <View style={styles.loadingInner}>
-          <View style={styles.dots}>
-            <BounceDot delay={0} />
-            <BounceDot delay={200} />
-            <BounceDot delay={400} />
-          </View>
-          <Animated.Text style={[styles.stepText, { opacity: stepOpacity, color: colors.text }]}>
-            {LOADING_STEPS[stepIndex]}
-          </Animated.Text>
-          <Text style={[styles.stepHint, { color: colors.textMuted }]}>Creating 3 personalized messages...</Text>
+          {streamText ? (
+            <>
+              <Text style={[styles.streamLabel, { color: colors.textMuted }]}>Writing your DMs...</Text>
+              <View style={[styles.streamBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <Text style={[styles.streamText, { color: colors.text }]}>{streamText}</Text>
+              </View>
+            </>
+          ) : (
+            <>
+              <View style={styles.dots}>
+                <BounceDot delay={0} />
+                <BounceDot delay={200} />
+                <BounceDot delay={400} />
+              </View>
+              <Animated.Text style={[styles.stepText, { opacity: stepOpacity, color: colors.text }]}>
+                {LOADING_STEPS[stepIndex]}
+              </Animated.Text>
+              <Text style={[styles.stepHint, { color: colors.textMuted }]}>Creating 3 personalized messages...</Text>
+            </>
+          )}
         </View>
       </Animated.View>
 
@@ -527,4 +540,13 @@ const styles = StyleSheet.create({
   dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#7B61FF' },
   stepText: { fontSize: 20, fontWeight: '700', marginBottom: 10, textAlign: 'center' },
   stepHint: { fontSize: 14, textAlign: 'center' },
+  streamLabel: { fontSize: 12, fontWeight: '600', marginBottom: 12, letterSpacing: 0.5 },
+  streamBox: {
+    width: '100%',
+    maxHeight: 260,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+  },
+  streamText: { fontSize: 14, lineHeight: 22 },
 });
