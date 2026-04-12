@@ -21,6 +21,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { generateDMs, DMContext } from '../../services/anthropic';
 import { setLastDMs, setLastContext, consumePendingTemplate } from '../../services/store';
 import { getUsageCount, incrementUsage, canGenerate, FREE_TOTAL_LIMIT } from '../../services/usage';
+import { analytics } from '../../services/analytics';
 import UpsellModal from '../../components/UpsellModal';
 
 const INTENTS = ['Sell', 'Collab', 'Network', 'Recruit', 'Other'];
@@ -28,11 +29,10 @@ const TONES = ['Confident', 'Friendly', 'Direct', 'Playful', 'Formal'];
 const PLATFORMS = ['Instagram', 'LinkedIn', 'WhatsApp', 'Email', 'Twitter/X'];
 
 const LOADING_STEPS = [
-  'Analyzing your target...',
-  'Optimizing tone...',
-  'Writing high-converting messages...',
-  'Crafting the hook...',
-  'Polishing for maximum reply rate...',
+  'Writing your DM...',
+  'Optimizing your message...',
+  'Making it more persuasive...',
+  'Finalizing...',
 ];
 
 const GREETINGS = [
@@ -177,6 +177,7 @@ export default function HomeScreen() {
   const [showUpsell, setShowUpsell] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const [streamText, setStreamText] = useState('');
+  const [slowRequest, setSlowRequest] = useState(false);
   const [greeting] = useState(GREETINGS[Math.floor(Math.random() * GREETINGS.length)]);
 
   const heroOpacity = useRef(new Animated.Value(0)).current;
@@ -186,13 +187,15 @@ export default function HomeScreen() {
   const btnScale = useRef(new Animated.Value(1)).current;
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const slowTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastGenRef = useRef<number>(0);
 
   // Restore saved form (or apply first-time defaults)
   useEffect(() => {
     SecureStore.getItemAsync(FORM_KEY).then((raw) => {
       if (!raw) {
         // First-time defaults
-        setIntent('Sell');
+        setIntent('Network');
         setTone('Friendly');
         setPlatform('Instagram');
         return;
@@ -290,20 +293,34 @@ export default function HomeScreen() {
     if (!platform) { Alert.alert('Pick a platform', 'Where are you sending this?'); return; }
     if (!senderInfo.trim()) { Alert.alert('Required', 'Add a bit about yourself.'); return; }
 
+    // Cooldown: prevent spam (1.5s between requests)
+    const now = Date.now();
+    if (now - lastGenRef.current < 1500) {
+      Alert.alert('Please wait', 'Wait a moment before generating again.');
+      return;
+    }
+
     // Usage limit check
     const ok = await canGenerate();
     if (!ok) {
+      analytics.paywallShown('hard');
       setShowUpsell(true);
       return;
     }
 
+    analytics.generateTap({ intent, platform, tone });
     const context: DMContext = { intent, target, goal, tone, platform, senderInfo, targetContext };
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
 
+    lastGenRef.current = Date.now();
     setStreamText('');
+    setSlowRequest(false);
     setLoading(true);
     startCycling();
     Animated.timing(loadingOpacity, { toValue: 1, duration: 250, useNativeDriver: true }).start();
+
+    // Show slow-request warning after 6s
+    slowTimeoutRef.current = setTimeout(() => setSlowRequest(true), 6000);
 
     try {
       setLastContext(context);
@@ -314,15 +331,25 @@ export default function HomeScreen() {
       const newCount = await incrementUsage();
       setUsageCount(newCount);
 
+      analytics.generateSuccess({ intent, platform, tone, count: newCount });
+
       // Soft upsell after 2nd generation
       if (newCount === 2) {
+        analytics.paywallShown('soft');
         setTimeout(() => setShowUpsell(true), 800);
       }
 
       router.push('/results');
     } catch (err: any) {
-      Alert.alert('Something went wrong', err.message ?? 'Please try again.');
+      const msg = err.message ?? 'Please try again.';
+      const isOffline = msg.toLowerCase().includes('network error') || msg.toLowerCase().includes('network request failed');
+      Alert.alert(
+        isOffline ? 'No internet connection' : 'Something went wrong',
+        isOffline ? 'Check your connection and try again.' : msg,
+      );
     } finally {
+      if (slowTimeoutRef.current) { clearTimeout(slowTimeoutRef.current); slowTimeoutRef.current = null; }
+      setSlowRequest(false);
       stopCycling();
       Animated.timing(loadingOpacity, { toValue: 0, duration: 200, useNativeDriver: true }).start(
         () => setLoading(false),
@@ -476,7 +503,13 @@ export default function HomeScreen() {
               <Animated.Text style={[styles.stepText, { opacity: stepOpacity, color: colors.text }]}>
                 {LOADING_STEPS[stepIndex]}
               </Animated.Text>
-              <Text style={[styles.stepHint, { color: colors.textMuted }]}>Creating 3 personalized messages...</Text>
+              {slowRequest ? (
+                <Text style={[styles.stepHint, { color: '#F59E0B' }]}>
+                  This is taking longer than expected. Try again if nothing happens.
+                </Text>
+              ) : (
+                <Text style={[styles.stepHint, { color: colors.textMuted }]}>Creating 3 personalized messages...</Text>
+              )}
             </>
           )}
         </View>
