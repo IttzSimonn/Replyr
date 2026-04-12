@@ -2,7 +2,7 @@ import * as SecureStore from 'expo-secure-store';
 
 // 3 lifetime free generations — no daily reset
 export const FREE_TOTAL_LIMIT = 3;
-const USAGE_KEY = 'usage_lifetime_v1';
+const USAGE_KEY = 'usage_lifetime_v2';
 
 export async function getUsageCount(): Promise<number> {
   try {
