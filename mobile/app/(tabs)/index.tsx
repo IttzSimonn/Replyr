@@ -10,8 +10,6 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  Modal,
-  Pressable,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -22,7 +20,8 @@ import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../contexts/ThemeContext';
 import { generateDMs, DMContext } from '../../services/anthropic';
 import { setLastDMs, setLastContext, consumePendingTemplate } from '../../services/store';
-import { getUsageCount, incrementUsage, canGenerate, FREE_DAILY_LIMIT } from '../../services/usage';
+import { getUsageCount, incrementUsage, canGenerate, FREE_TOTAL_LIMIT } from '../../services/usage';
+import UpsellModal from '../../components/UpsellModal';
 
 const INTENTS = ['Sell', 'Collab', 'Network', 'Recruit', 'Other'];
 const TONES = ['Confident', 'Friendly', 'Direct', 'Playful', 'Formal'];
@@ -160,63 +159,6 @@ function BounceDot({ delay }: { delay: number }) {
   return <Animated.View style={[styles.dot, { transform: [{ translateY: anim }] }]} />;
 }
 
-// ─── Upsell modal ─────────────────────────────────────────────────────────────
-
-function UpsellModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
-  const { colors } = useTheme();
-  const scaleAnim = useRef(new Animated.Value(0.9)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (visible) {
-      Animated.parallel([
-        Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 6 }),
-        Animated.timing(opacityAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
-      ]).start();
-    } else {
-      scaleAnim.setValue(0.9);
-      opacityAnim.setValue(0);
-    }
-  }, [visible]);
-
-  return (
-    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
-      <Pressable style={styles.modalBg} onPress={onClose}>
-        <Animated.View
-          style={[
-            styles.modalCard,
-            { backgroundColor: colors.surface, borderColor: colors.border },
-            { transform: [{ scale: scaleAnim }], opacity: opacityAnim },
-          ]}
-        >
-          <Text style={styles.modalEmoji}>✨</Text>
-          <Text style={[styles.modalTitle, { color: colors.text }]}>Want unlimited messages?</Text>
-          <Text style={[styles.modalSub, { color: colors.textMuted }]}>
-            Upgrade to Pro for unlimited daily DMs, priority AI, and saved personas.
-          </Text>
-          <TouchableOpacity
-            onPress={() => { onClose(); router.push('/(tabs)/profile'); }}
-            activeOpacity={0.85}
-            style={styles.modalBtnOuter}
-          >
-            <LinearGradient
-              colors={['#7B61FF', '#5B9CFF']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.modalBtn}
-            >
-              <Text style={styles.modalBtnText}>Unlock Pro</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={onClose} style={styles.modalSkip} activeOpacity={0.6}>
-            <Text style={[styles.modalSkipText, { color: colors.textMuted }]}>Maybe later</Text>
-          </TouchableOpacity>
-        </Animated.View>
-      </Pressable>
-    </Modal>
-  );
-}
-
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
@@ -233,6 +175,7 @@ export default function HomeScreen() {
   const [stepIndex, setStepIndex] = useState(0);
   const [usageCount, setUsageCount] = useState(0);
   const [showUpsell, setShowUpsell] = useState(false);
+  const [showHint, setShowHint] = useState(false);
   const [greeting] = useState(GREETINGS[Math.floor(Math.random() * GREETINGS.length)]);
 
   const heroOpacity = useRef(new Animated.Value(0)).current;
@@ -305,8 +248,14 @@ export default function HomeScreen() {
         if (t.goal) setGoal(t.goal);
         if (t.platform) setPlatform(t.platform);
       }
-      // Refresh usage count every time screen is focused
-      getUsageCount().then(setUsageCount);
+      getUsageCount().then((count) => {
+        setUsageCount(count);
+        // Show hint when returning after 1st generation
+        if (count === 1) {
+          setShowHint(true);
+          setTimeout(() => setShowHint(false), 3500);
+        }
+      });
     }, []),
   );
 
@@ -379,8 +328,8 @@ export default function HomeScreen() {
     }
   };
 
-  const remaining = Math.max(0, FREE_DAILY_LIMIT - usageCount);
-  const limitReached = usageCount >= FREE_DAILY_LIMIT;
+  const remaining = Math.max(0, FREE_TOTAL_LIMIT - usageCount);
+  const limitReached = usageCount >= FREE_TOTAL_LIMIT;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
@@ -449,22 +398,31 @@ export default function HomeScreen() {
 
         {/* Sticky bottom */}
         <View style={[styles.stickyBottom, { backgroundColor: colors.bg, borderTopColor: colors.surface }]}>
-          {/* Usage counter */}
-          <View style={styles.usageRow}>
-            <Text style={[
-              styles.usageText,
-              { color: limitReached ? '#EF4444' : remaining <= 2 ? '#F59E0B' : colors.textMuted },
-            ]}>
-              {limitReached
-                ? 'Daily limit reached'
-                : `${remaining}/${FREE_DAILY_LIMIT} generations left today`}
-            </Text>
-            {!limitReached && usageCount > 0 && (
-              <TouchableOpacity onPress={() => setShowUpsell(true)} activeOpacity={0.7}>
-                <Text style={styles.usageUpgrade}>Upgrade ✨</Text>
-              </TouchableOpacity>
-            )}
-          </View>
+          {/* Hint after 1st generation */}
+          {showHint && (
+            <Text style={[styles.hintText, { color: '#7B61FF' }]}>See how easy it is? 🎉</Text>
+          )}
+
+          {/* Usage counter — only shown after first use */}
+          {usageCount > 0 && (
+            <View style={styles.usageRow}>
+              <Text style={[
+                styles.usageText,
+                { color: limitReached ? '#EF4444' : remaining === 1 ? '#F59E0B' : colors.textMuted },
+              ]}>
+                {limitReached
+                  ? 'No free generations left'
+                  : remaining === 1
+                  ? '1 free generation left'
+                  : `${remaining} free generations left`}
+              </Text>
+              {!limitReached && (
+                <TouchableOpacity onPress={() => setShowUpsell(true)} activeOpacity={0.7}>
+                  <Text style={styles.usageUpgrade}>Upgrade ✨</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
 
           {/* Generate button */}
           <Animated.View style={{ transform: [{ scale: btnScale }] }}>
@@ -512,7 +470,11 @@ export default function HomeScreen() {
       </Animated.View>
 
       {/* Upsell modal */}
-      <UpsellModal visible={showUpsell} onClose={() => setShowUpsell(false)} />
+      <UpsellModal
+        visible={showUpsell}
+        onClose={() => setShowUpsell(false)}
+        variant={limitReached ? 'hard' : 'soft'}
+      />
     </View>
   );
 }
@@ -557,6 +519,7 @@ const styles = StyleSheet.create({
   btnDisabled: { opacity: 0.5 },
   btn: { paddingVertical: 18, alignItems: 'center', borderRadius: 16 },
   btnText: { color: '#FFFFFF', fontSize: 17, fontWeight: '700', letterSpacing: 0.2 },
+  hintText: { fontSize: 12, fontWeight: '600', textAlign: 'center', marginBottom: 6 },
   trustLine: { fontSize: 11, textAlign: 'center', marginTop: 8 },
   overlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
   loadingInner: { alignItems: 'center', paddingHorizontal: 32 },
@@ -564,28 +527,4 @@ const styles = StyleSheet.create({
   dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#7B61FF' },
   stepText: { fontSize: 20, fontWeight: '700', marginBottom: 10, textAlign: 'center' },
   stepHint: { fontSize: 14, textAlign: 'center' },
-  // Upsell modal
-  modalBg: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 28,
-  },
-  modalCard: {
-    width: '100%',
-    maxWidth: 360,
-    borderRadius: 24,
-    padding: 28,
-    alignItems: 'center',
-    borderWidth: 1,
-  },
-  modalEmoji: { fontSize: 36, marginBottom: 12 },
-  modalTitle: { fontSize: 22, fontWeight: '800', letterSpacing: -0.4, marginBottom: 8, textAlign: 'center' },
-  modalSub: { fontSize: 14, lineHeight: 22, textAlign: 'center', marginBottom: 24 },
-  modalBtnOuter: { width: '100%', borderRadius: 14, overflow: 'hidden', marginBottom: 12 },
-  modalBtn: { paddingVertical: 16, alignItems: 'center', borderRadius: 14 },
-  modalBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
-  modalSkip: { paddingVertical: 8 },
-  modalSkipText: { fontSize: 14 },
 });

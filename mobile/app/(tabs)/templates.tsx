@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -6,6 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../contexts/ThemeContext';
 import { setPendingTemplate } from '../../services/store';
 import { DMContext } from '../../services/anthropic';
+import { canGenerate } from '../../services/usage';
+import UpsellModal from '../../components/UpsellModal';
 
 interface Template {
   id: string;
@@ -90,8 +92,13 @@ const TEMPLATES: Template[] = [
 export default function TemplatesScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const [showPaywall, setShowPaywall] = useState(false);
 
-  const handleSelect = (template: Template) => {
+  const handleSelect = async (template: Template) => {
+    if (template.pro && !(await canGenerate())) {
+      setShowPaywall(true);
+      return;
+    }
     setPendingTemplate(template.data);
     router.navigate('/(tabs)/');
   };
@@ -158,6 +165,12 @@ export default function TemplatesScreen() {
           </TouchableOpacity>
         ))}
       </ScrollView>
+
+      <UpsellModal
+        visible={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        variant="hard"
+      />
     </View>
   );
 }
