@@ -26,9 +26,8 @@ function extractDM(text: string, n: number): string {
 }
 
 /**
- * Generate 3 DMs via a streaming SSE endpoint.
- * @param onChunk  Called with the accumulated raw text on every token — use this
- *                 to show live output in the UI while waiting.
+ * Generate 3 DMs. Supports both streaming (SSE) and plain JSON backends.
+ * @param onChunk  Optional — called with accumulated text on each token for live UI.
  */
 export function generateDMs(
   context: DMContext,
@@ -38,13 +37,13 @@ export function generateDMs(
     const xhr = new XMLHttpRequest();
     xhr.open('POST', `${BACKEND_URL}/generate`);
     xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.timeout = 30000;
+    xhr.timeout = 60000; // 60s — handles Render free-tier cold start
 
     let processed = 0;
     let fullText = '';
 
     xhr.onprogress = () => {
-      // Only process newly arrived bytes
+      // Parse SSE chunks as they arrive
       const newData = xhr.responseText.slice(processed);
       processed = xhr.responseText.length;
 
@@ -60,7 +59,7 @@ export function generateDMs(
             onChunk?.(fullText);
           }
         } catch {
-          // partial JSON chunk — ignore, next onprogress will have more
+          // partial chunk — next onprogress will complete it
         }
       }
     };
@@ -75,15 +74,31 @@ export function generateDMs(
         }
         return;
       }
-      resolve({
-        dm1: extractDM(fullText, 1),
-        dm2: extractDM(fullText, 2),
-        dm3: extractDM(fullText, 3),
-      });
+
+      // Streaming backend: use accumulated SSE text
+      if (fullText) {
+        resolve({
+          dm1: extractDM(fullText, 1),
+          dm2: extractDM(fullText, 2),
+          dm3: extractDM(fullText, 3),
+        });
+        return;
+      }
+
+      // Fallback: plain JSON backend (old format)
+      try {
+        const data = JSON.parse(xhr.responseText) as GeneratedDMs;
+        if (data.dm1 || data.dm2 || data.dm3) {
+          resolve(data);
+          return;
+        }
+      } catch {}
+
+      reject(new Error('No response from server. Please try again.'));
     };
 
     xhr.onerror = () => reject(new Error('Network error. Please try again.'));
-    xhr.ontimeout = () => reject(new Error('Request timed out. Please try again.'));
+    xhr.ontimeout = () => reject(new Error('Server is starting up — please try again in a moment.'));
 
     xhr.send(JSON.stringify({
       intent: context.intent,
