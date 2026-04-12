@@ -8,7 +8,7 @@ import { useTheme } from '../contexts/ThemeContext';
 const SECTIONS = [
   {
     title: '1. Data Controller',
-    body: 'Replyr is the data controller responsible for your personal data. Contact: support@replyr.app.',
+    body: 'Replyr is the data controller responsible for your personal data. Replyr is established in Belgium. Contact: support@replyr.app.',
   },
   {
     title: '2. Data We Collect',
@@ -56,7 +56,7 @@ const SECTIONS = [
   },
   {
     title: '13. Supervisory Authority',
-    body: 'If you are located in the EU and believe we are not handling your data in compliance with GDPR, you have the right to lodge a complaint with your local data protection authority. In the Netherlands, this is the Autoriteit Persoonsgegevens (autoriteitpersoonsgegevens.nl).',
+    body: 'If you believe we are not handling your data in compliance with GDPR, you have the right to lodge a complaint with your local data protection authority. Our lead supervisory authority is the Belgian Data Protection Authority (Gegevensbeschermingsautoriteit / Autorité de protection des données) — gegevensbeschermingsautoriteit.be. You may also contact the supervisory authority in your own country of residence.',
   },
   {
     title: '14. Contact',

@@ -56,7 +56,7 @@ const SECTIONS = [
   },
   {
     title: '13. Governing Law',
-    body: 'These Terms are governed by and construed in accordance with the laws of the Netherlands. Any disputes arising from these Terms shall be subject to the exclusive jurisdiction of the competent courts in the Netherlands, without prejudice to your rights as a consumer under mandatory EU consumer protection law.',
+    body: 'These Terms are governed by and construed in accordance with the laws of Belgium. Any disputes arising from these Terms shall be subject to the exclusive jurisdiction of the competent courts in Belgium, without prejudice to your rights as a consumer under mandatory EU consumer protection law.',
   },
   {
     title: '14. Severability',
